@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  /* Custom Brand Base overrides */
+  --color-indigo-50: #EDEEF6;
+  --color-indigo-100: #D9DDED;
+  --color-indigo-200: #B3BBDB;
+  --color-indigo-300: #8C9ACA;
+  --color-indigo-400: #6678B8;
+  --color-indigo-500: #4056A6;
+  --color-indigo-600: #334585;
+  --color-indigo-700: #263464;
+  --color-indigo-800: #1A2242;
+  --color-indigo-900: #0D1121;
+  --color-indigo-950: #060911;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
