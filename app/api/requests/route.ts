@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createNewRequest, getAllRequests } from "@/lib/requests";
 import { z } from "zod";
-import { writeFile } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { RequestStatus } from "@prisma/client";
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     const validation = createRequestSchema.safeParse(data);
     if (!validation.success) {
-      return NextResponse.json({ error: validation.error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: validation.error.issues[0]?.message ?? "Data tidak valid" }, { status: 400 });
     }
 
     // Save the file
@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
     const filename = `bukti-${Date.now()}${ext}`;
     const publicPath = `/uploads/bukti/${filename}`;
     const uploadDir = path.join(process.cwd(), "public", "uploads", "bukti");
+    await mkdir(uploadDir, { recursive: true });
     await writeFile(path.join(uploadDir, filename), buffer);
 
     const result = await createNewRequest({
