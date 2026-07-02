@@ -308,6 +308,9 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                       className="block w-2/5 px-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
                     />
                   </div>
+                  <p className="mt-2 text-xs text-slate-500">
+                    <span className="font-semibold text-indigo-600">* Catatan:</span> Jika pengajuan hanya 1 hari, silakan isi dengan tanggal yang sama.
+                  </p>
                 </div>
               </div>
 
