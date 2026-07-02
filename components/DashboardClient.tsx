@@ -19,8 +19,10 @@ const statusConfig: Record<string, { color: string, icon: any, label: string }> 
   done: { color: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle2, label: "Selesai (Done)" },
 };
 
-const formatDateTime = (dateStr: string | Date, exportFormat = false) => {
+const formatDateTime = (dateStr: string | Date | null, exportFormat = false) => {
+  if (!dateStr) return "-";
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "-";
   const timeStr = format(d, "HH:mm");
   if (timeStr === "00:00" || timeStr === "23:59") {
     return format(d, exportFormat ? "dd/MM/yyyy" : "dd MMM yyyy");
@@ -43,7 +45,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   const [dateTo, setDateTo] = useState("");
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
-  const [sortField, setSortField] = useState<"tglMulai" | "noForm">("noForm");
+  const [sortField, setSortField] = useState<"tglMulai" | "noForm" | "createdAt">("noForm");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -203,6 +205,10 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
     if (sortField === "tglMulai") {
       const dateA = new Date(a.tglMulai).getTime();
       const dateB = new Date(b.tglMulai).getTime();
+      return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    } else if (sortField === "createdAt") {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
       return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     } else {
       return sortOrder === "desc" 
@@ -384,10 +390,10 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 "Pemohon": req.namaPemohon,
                 "Divisi": req.divisi,
                 "Tujuan": req.tujuan,
-                "Tgl Mulai": format(new Date(req.tglMulai), "dd/MM/yyyy"),
-                "Jam Mulai": format(new Date(req.tglMulai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglMulai), "HH:mm"),
-                "Tgl Selesai": format(new Date(req.tglSelesai), "dd/MM/yyyy"),
-                "Jam Selesai": format(new Date(req.tglSelesai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglSelesai), "HH:mm"),
+                "Tgl Mulai": req.tglMulai ? format(new Date(req.tglMulai), "dd/MM/yyyy") : "",
+                "Jam Mulai": req.tglMulai ? (format(new Date(req.tglMulai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglMulai), "HH:mm")) : "",
+                "Tgl Selesai": req.tglSelesai ? format(new Date(req.tglSelesai), "dd/MM/yyyy") : "",
+                "Jam Selesai": req.tglSelesai ? (format(new Date(req.tglSelesai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglSelesai), "HH:mm")) : "",
                 "Status": statusConfig[req.status]?.label || req.status,
                 "Driver": req.driver ? req.driver.nama : "-",
                 "Kendaraan": req.kendaraan ? req.kendaraan.jenis : "-",
@@ -484,9 +490,27 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   <th className="p-5 pl-6 align-middle">
                     <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if(sortField === 'noForm') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('noForm'); setSortOrder('desc'); } }}>
                       <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">No Form</span>
-                      {sortField === 'noForm' && (
+                      {sortField === 'noForm' ? (
                         <span className="text-indigo-200 bg-indigo-900/50 rounded-md px-1.5 py-0.5 text-xs group-hover:bg-indigo-800 group-hover:text-white transition-colors font-bold">
                           {sortOrder === 'desc' ? '↓' : '↑'}
+                        </span>
+                      ) : (
+                        <span className="text-indigo-400/50 px-1.5 py-0.5 text-xs group-hover:text-indigo-200 transition-colors font-bold">
+                          ↕
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th className="p-5 align-middle">
+                    <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if(sortField === 'createdAt') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('createdAt'); setSortOrder('desc'); } }}>
+                      <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">Waktu Pengajuan</span>
+                      {sortField === 'createdAt' ? (
+                        <span className="text-indigo-200 bg-indigo-900/50 rounded-md px-1.5 py-0.5 text-xs group-hover:bg-indigo-800 group-hover:text-white transition-colors font-bold">
+                          {sortOrder === 'desc' ? '↓' : '↑'}
+                        </span>
+                      ) : (
+                        <span className="text-indigo-400/50 px-1.5 py-0.5 text-xs group-hover:text-indigo-200 transition-colors font-bold">
+                          ↕
                         </span>
                       )}
                     </div>
@@ -516,9 +540,13 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   <th className="p-5 align-middle">
                     <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if(sortField === 'tglMulai') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('tglMulai'); setSortOrder('desc'); } }}>
                       <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">Jadwal</span>
-                      {sortField === 'tglMulai' && (
+                      {sortField === 'tglMulai' ? (
                         <span className="text-indigo-200 bg-indigo-900/50 rounded-md px-1.5 py-0.5 text-xs group-hover:bg-indigo-800 group-hover:text-white transition-colors font-bold">
                           {sortOrder === 'desc' ? '↓' : '↑'}
+                        </span>
+                      ) : (
+                        <span className="text-indigo-400/50 px-1.5 py-0.5 text-xs group-hover:text-indigo-200 transition-colors font-bold">
+                          ↕
                         </span>
                       )}
                     </div>
@@ -602,7 +630,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               <tbody className="divide-y divide-slate-100">
                 {processedRequests.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="p-10 text-center text-slate-500 bg-white">
+                    <td colSpan={10} className="p-10 text-center text-slate-500 bg-white">
                       <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
                       <h3 className="text-lg font-bold text-slate-700">Tidak ada permintaan</h3>
                     </td>
@@ -612,6 +640,9 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   return (
                     <tr key={req.id} className="even:bg-slate-50 odd:bg-white hover:bg-slate-100 transition-colors">
                       <td className="p-5 pl-6 font-bold text-slate-900">{req.noForm}</td>
+                      <td className="p-5">
+                        <p className="text-sm text-slate-600 font-medium">{formatDateTime(req.createdAt)}</p>
+                      </td>
                       <td className="p-5">
                         <p className="font-semibold text-slate-800">{req.namaPemohon}</p>
                       </td>
@@ -879,41 +910,51 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Driver</label>
                     <div className="relative">
-                      <button
-                        type="button"
+                      <input
+                        type="text"
+                        required
+                        value={selectedDriver}
+                        onChange={(e) => {
+                          setSelectedDriver(e.target.value);
+                          setOpenDropdown('action-driver');
+                        }}
+                        onFocus={() => setOpenDropdown('action-driver')}
+                        placeholder="Ketik atau pilih driver..."
+                        className="w-full px-4 py-3 pr-10 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-slate-900"
+                      />
+                      <button 
+                        type="button" 
                         onClick={() => setOpenDropdown(openDropdown === 'action-driver' ? null : 'action-driver')}
-                        className="flex justify-between items-center w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-left"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center z-10 focus:outline-none"
                       >
-                        <span className={selectedDriver ? "text-slate-900" : "text-slate-500"}>
-                          {selectedDriver ? drivers.find(d => d.id.toString() === selectedDriver)?.nama : "-- Pilih Driver --"}
-                        </span>
-                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openDropdown === 'action-driver' ? 'rotate-180' : ''}`} />
                       </button>
                       {openDropdown === 'action-driver' && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
                           <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-y-auto overflow-x-hidden max-h-[380px] overscroll-contain font-normal text-slate-700">
-                            <button 
-                              type="button"
-                              onClick={() => { setSelectedDriver(""); setOpenDropdown(null); }} 
-                              className="w-full text-left px-4 py-3 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors border-b border-slate-100 text-slate-500"
-                            >
-                              -- Pilih Driver --
-                            </button>
-                            {drivers.map(d => (
+                            {drivers.filter(d => d.nama.toLowerCase().includes(selectedDriver.toLowerCase())).map(d => (
                               <button 
                                 key={d.id}
                                 type="button"
-                                onClick={() => { setSelectedDriver(d.id.toString()); setOpenDropdown(null); }} 
-                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${selectedDriver === d.id.toString() ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}
+                                onClick={() => { setSelectedDriver(d.nama); setOpenDropdown(null); }} 
+                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${selectedDriver === d.nama ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}
                               >
                                 {d.nama}
                               </button>
                             ))}
+                            {selectedDriver && !drivers.some(d => d.nama.toLowerCase() === selectedDriver.toLowerCase()) && (
+                              <button
+                                type="button"
+                                onClick={() => setOpenDropdown(null)}
+                                className="w-full text-left px-4 py-3 hover:bg-indigo-50 text-indigo-700 transition-colors border-t border-slate-100 text-sm font-semibold"
+                              >
+                                + Tambah "{selectedDriver}" sebagai driver
+                              </button>
+                            )}
                           </div>
                         </>
                       )}
-                      <input type="text" required value={selectedDriver} onChange={() => {}} className="opacity-0 absolute inset-0 -z-10 w-full h-full pointer-events-none" />
                     </div>
                   </div>
                   <div>
