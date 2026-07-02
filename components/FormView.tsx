@@ -2,14 +2,54 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Calendar, Building, User, FileText, UploadCloud, CarFront, ArrowRight, MessageCircle } from "lucide-react";
+import { Calendar, Building, User, FileText, UploadCloud, CarFront, ArrowRight, MessageCircle, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+
+const DIVISIONS = [
+  "Business Development",
+  "Trading",
+  "Marketing Communication",
+  "Engineering",
+  "PTS - Manpower Supply",
+  "Freeport - Refractory Routine Maintenance",
+  "Freeport - Manpower Supply Hot Metal",
+  "Freeport - Tapper Skimmer",
+  "Freeport - Scaffolding Supply & Install",
+  "Freeport - Lime Package & ETP",
+  "Freeport - Matte Grinding Maintenance Service",
+  "Freeport - Excavator & Dump Truck Rental",
+  "Freeport - Vacuum Truck",
+  "Vale - Ladle Cleaning",
+  "Vale - Forklift Ladle Handler 25 Ton",
+  "Antam - Refractory Lining, Slag Pot Demolition Robot",
+  "Antam - Vacuum Truck",
+  "Antam - Fabrikasi Electrode Casing",
+  "PT Ceria - Refractory Ladle Maintenance",
+  "Project Control",
+  "HSE",
+  "Projects",
+  "Fabrication & Hydraulic",
+  "Asset Maintenance",
+  "Transport",
+  "Procurement",
+  "Warehouse",
+  "External Relation",
+  "Export & Import",
+  "Finance",
+  "HRD",
+  "QMS",
+  "Legal",
+  "IT",
+  "Office Support"
+];
 
 export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (noForm?: string) => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<{ noForm: string; namaPemohon: string; tujuan: string; tglMulai: string } | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [divisiInput, setDivisiInput] = useState("");
+  const [showDivisiDropdown, setShowDivisiDropdown] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -31,6 +71,17 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
       setIsSubmitting(false);
       return;
     }
+
+    const tglMulaiDate = formData.get("tglMulai") as string;
+    const jamMulai = formData.get("jamMulai") as string;
+    const tglSelesaiDate = formData.get("tglSelesai") as string;
+    const jamSelesai = formData.get("jamSelesai") as string;
+
+    const tglMulai = jamMulai ? `${tglMulaiDate}T${jamMulai}` : `${tglMulaiDate}T00:00`;
+    const tglSelesai = jamSelesai ? `${tglSelesaiDate}T${jamSelesai}` : `${tglSelesaiDate}T23:59`;
+
+    formData.set("tglMulai", tglMulai);
+    formData.set("tglSelesai", tglSelesai);
 
     try {
       const res = await fetch("/api/requests", {
@@ -150,7 +201,7 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                   Divisi / Departemen
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-30">
                     <Building className="h-5 w-5 text-slate-400" />
                   </div>
                   <input
@@ -158,9 +209,56 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                     name="divisi"
                     id="divisi"
                     required
-                    className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white"
-                    placeholder="Contoh: Marketing"
+                    value={divisiInput}
+                    onChange={(e) => {
+                      setDivisiInput(e.target.value);
+                      setShowDivisiDropdown(true);
+                    }}
+                    onFocus={() => setShowDivisiDropdown(true)}
+                    className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white relative z-20"
+                    placeholder="Pilih atau ketik divisi..."
+                    autoComplete="off"
                   />
+                  <button 
+                    type="button"
+                    onClick={() => setShowDivisiDropdown(!showDivisiDropdown)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center z-30 focus:outline-none"
+                  >
+                    <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${showDivisiDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {showDivisiDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setShowDivisiDropdown(false)} />
+                      <div className="absolute top-full mt-2 left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-40 max-h-60 overflow-y-auto overscroll-contain">
+                        {DIVISIONS.filter(d => d.toLowerCase().includes(divisiInput.toLowerCase())).map((div, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              setDivisiInput(div);
+                              setShowDivisiDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 transition-colors border-b border-slate-50 last:border-0 text-sm"
+                          >
+                            {div}
+                          </button>
+                        ))}
+                        {divisiInput && !DIVISIONS.some(d => d.toLowerCase() === divisiInput.toLowerCase()) && (
+                          <button
+                            type="button"
+                            onClick={() => setShowDivisiDropdown(false)}
+                            className="w-full text-left px-4 py-3 bg-indigo-50 text-indigo-700 font-bold border-t border-slate-100 text-sm"
+                          >
+                            Gunakan "{divisiInput}"
+                          </button>
+                        )}
+                        {DIVISIONS.filter(d => d.toLowerCase().includes(divisiInput.toLowerCase())).length === 0 && !divisiInput && (
+                          <div className="px-4 py-3 text-slate-500 text-sm italic">Tidak ada opsi. Ketik untuk menambahkan.</div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -168,30 +266,48 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
             <div className="space-y-6">
               <h3 className="text-xl font-bold text-slate-800 border-b pb-2">Detail Penggunaan</h3>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-6">
                 <div>
-                  <label htmlFor="tglMulai" className="block text-sm font-medium text-slate-700 mb-2">
-                    Tgl & Jam Mulai
+                  <label className="block text-sm font-medium text-slate-700 mb-2 flex justify-between items-end">
+                    <span>Tgl & Jam Mulai</span>
+                    <span className="text-xs text-slate-400 font-normal">Jam opsional</span>
                   </label>
-                  <input
-                    type="datetime-local"
-                    name="tglMulai"
-                    id="tglMulai"
-                    required
-                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      name="tglMulai"
+                      id="tglMulai"
+                      required
+                      className="block w-3/5 px-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
+                    />
+                    <input
+                      type="time"
+                      name="jamMulai"
+                      id="jamMulai"
+                      className="block w-2/5 px-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label htmlFor="tglSelesai" className="block text-sm font-medium text-slate-700 mb-2">
-                    Tgl & Jam Selesai
+                  <label className="block text-sm font-medium text-slate-700 mb-2 flex justify-between items-end">
+                    <span>Tgl & Jam Selesai</span>
+                    <span className="text-xs text-slate-400 font-normal">Jam opsional</span>
                   </label>
-                  <input
-                    type="datetime-local"
-                    name="tglSelesai"
-                    id="tglSelesai"
-                    required
-                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      name="tglSelesai"
+                      id="tglSelesai"
+                      required
+                      className="block w-3/5 px-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
+                    />
+                    <input
+                      type="time"
+                      name="jamSelesai"
+                      id="jamSelesai"
+                      className="block w-2/5 px-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
+                    />
+                  </div>
                 </div>
               </div>
 
