@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { assignRequest } from "@/lib/requests";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { prisma } from "@/lib/prisma";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -21,7 +22,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Driver dan Kendaraan wajib dipilih" }, { status: 400 });
     }
 
-    const request = await assignRequest(id, parseInt((session.user as any).id, 10), parseInt(driverId, 10), parseInt(kendaraanId, 10), catatan);
+    let finalDriverId = parseInt(driverId, 10);
+    if (isNaN(finalDriverId)) {
+      // Input is a string name, not an ID
+      const driverName = driverId.toString().trim();
+      let existing = await prisma.driver.findFirst({
+        where: { nama: driverName }
+      });
+      if (existing) {
+        finalDriverId = existing.id;
+      } else {
+        const newDriver = await prisma.driver.create({
+          data: { nama: driverName, status: "aktif" }
+        });
+        finalDriverId = newDriver.id;
+      }
+    }
+
+    const request = await assignRequest(id, parseInt((session.user as any).id, 10), finalDriverId, parseInt(kendaraanId, 10), catatan);
     
     return NextResponse.json({ success: true, data: request });
   } catch (error: any) {

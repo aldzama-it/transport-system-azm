@@ -19,8 +19,10 @@ const statusConfig: Record<string, { color: string, icon: any, label: string }> 
   done: { color: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle2, label: "Selesai (Done)" },
 };
 
-const formatDateTime = (dateStr: string | Date, exportFormat = false) => {
+const formatDateTime = (dateStr: string | Date | null, exportFormat = false) => {
+  if (!dateStr) return "-";
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "-";
   const timeStr = format(d, "HH:mm");
   if (timeStr === "00:00" || timeStr === "23:59") {
     return format(d, exportFormat ? "dd/MM/yyyy" : "dd MMM yyyy");
@@ -43,7 +45,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   const [dateTo, setDateTo] = useState("");
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
-  const [sortField, setSortField] = useState<"tglMulai" | "noForm">("noForm");
+  const [sortField, setSortField] = useState<"tglMulai" | "noForm" | "createdAt">("noForm");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -61,75 +63,6 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   const [isProcessing, setIsProcessing] = useState(false);
   const [buktiModal, setBuktiModal] = useState<string | null>(null);
 
-  const [isAddDriverModalOpen, setIsAddDriverModalOpen] = useState(false);
-  const [newDriverNama, setNewDriverNama] = useState("");
-  const [newDriverTelepon, setNewDriverTelepon] = useState("");
-  const [isAddingDriver, setIsAddingDriver] = useState(false);
-
-  const handleAddDriver = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newDriverNama.trim()) {
-      toast.error("Nama driver wajib diisi");
-      return;
-    }
-    setIsAddingDriver(true);
-    try {
-      const res = await fetch("/api/drivers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nama: newDriverNama, telepon: newDriverTelepon }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("Driver berhasil ditambahkan");
-        setIsAddDriverModalOpen(false);
-        setNewDriverNama("");
-        setNewDriverTelepon("");
-        fetchData();
-      } else {
-        toast.error(data.error || "Gagal menambah driver");
-      }
-    } catch (e) {
-      toast.error("Terjadi kesalahan sistem");
-    } finally {
-      setIsAddingDriver(false);
-    }
-  };
-
-  const [isAddKendaraanModalOpen, setIsAddKendaraanModalOpen] = useState(false);
-  const [newKendaraanJenis, setNewKendaraanJenis] = useState("");
-  const [newKendaraanNopol, setNewKendaraanNopol] = useState("");
-  const [isAddingKendaraan, setIsAddingKendaraan] = useState(false);
-
-  const handleAddKendaraan = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newKendaraanJenis.trim() || !newKendaraanNopol.trim()) {
-      toast.error("Jenis dan Nopol wajib diisi");
-      return;
-    }
-    setIsAddingKendaraan(true);
-    try {
-      const res = await fetch("/api/kendaraan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jenis: newKendaraanJenis, nopol: newKendaraanNopol }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("Kendaraan berhasil ditambahkan");
-        setIsAddKendaraanModalOpen(false);
-        setNewKendaraanJenis("");
-        setNewKendaraanNopol("");
-        fetchData();
-      } else {
-        toast.error(data.error || "Gagal menambah kendaraan");
-      }
-    } catch (e) {
-      toast.error("Terjadi kesalahan sistem");
-    } finally {
-      setIsAddingKendaraan(false);
-    }
-  };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -203,6 +136,10 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
     if (sortField === "tglMulai") {
       const dateA = new Date(a.tglMulai).getTime();
       const dateB = new Date(b.tglMulai).getTime();
+      return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    } else if (sortField === "createdAt") {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
       return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     } else {
       return sortOrder === "desc" 
@@ -336,34 +273,52 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
           {!readOnly && (
             <>
               <button
-                onClick={() => setIsAddDriverModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                onClick={() => router.push('/dashboard/assets')}
+                className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
               >
-                <Plus className="w-4 h-4" />
-                Tambah Driver
+                <Calendar className="w-4 h-4" />
+                Cek Driver & Kendaraan
               </button>
-              <button
-                onClick={() => setIsAddKendaraanModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              >
-                <Plus className="w-4 h-4" />
-                Tambah Kendaraan
-              </button>
-              <button
-                onClick={handleDownloadTemplate}
-                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                <Download className="w-4 h-4" />
-                Template
-              </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isImporting}
-                className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors shadow-sm focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50"
-              >
-                <Upload className="w-4 h-4" />
-                {isImporting ? "Mengimpor..." : "Import"}
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setOpenDropdown(openDropdown === 'import-menu' ? null : 'import-menu')}
+                  disabled={isImporting}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                >
+                  <Upload className="w-4 h-4" />
+                  {isImporting ? "Mengimpor..." : "Import"}
+                  <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === 'import-menu' ? 'rotate-180' : ''}`} />
+                </button>
+                {openDropdown === 'import-menu' && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden font-normal text-slate-700">
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setOpenDropdown(null);
+                          fileInputRef.current?.click();
+                        }}
+                        className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 transition-colors border-b border-slate-100"
+                      >
+                        <Upload className="w-4 h-4 text-purple-600" />
+                        <span className="font-semibold text-slate-700">Import dari Excel</span>
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setOpenDropdown(null);
+                          handleDownloadTemplate();
+                        }}
+                        className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 transition-colors"
+                      >
+                        <Download className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium text-slate-600">Unduh Template Excel</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
               <input 
                 type="file" 
                 accept=".xlsx" 
@@ -384,10 +339,10 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 "Pemohon": req.namaPemohon,
                 "Divisi": req.divisi,
                 "Tujuan": req.tujuan,
-                "Tgl Mulai": format(new Date(req.tglMulai), "dd/MM/yyyy"),
-                "Jam Mulai": format(new Date(req.tglMulai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglMulai), "HH:mm"),
-                "Tgl Selesai": format(new Date(req.tglSelesai), "dd/MM/yyyy"),
-                "Jam Selesai": format(new Date(req.tglSelesai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglSelesai), "HH:mm"),
+                "Tgl Mulai": req.tglMulai ? format(new Date(req.tglMulai), "dd/MM/yyyy") : "",
+                "Jam Mulai": req.tglMulai ? (format(new Date(req.tglMulai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglMulai), "HH:mm")) : "",
+                "Tgl Selesai": req.tglSelesai ? format(new Date(req.tglSelesai), "dd/MM/yyyy") : "",
+                "Jam Selesai": req.tglSelesai ? (format(new Date(req.tglSelesai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglSelesai), "HH:mm")) : "",
                 "Status": statusConfig[req.status]?.label || req.status,
                 "Driver": req.driver ? req.driver.nama : "-",
                 "Kendaraan": req.kendaraan ? req.kendaraan.jenis : "-",
@@ -409,30 +364,60 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center items-center">
-          <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1 text-center">Total Form</span>
-          <span className="text-2xl font-black text-slate-800">{statTotal}</span>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 hover:shadow-md transition-shadow group">
+          <div className="flex-shrink-0 p-2.5 bg-slate-100 text-slate-600 rounded-xl group-hover:scale-110 transition-transform">
+            <FileText className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate mb-1">Total Form</p>
+            <p className="text-xl sm:text-2xl font-black text-slate-800 leading-none truncate">{statTotal}</p>
+          </div>
         </div>
-        <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200 shadow-sm flex flex-col justify-center items-center">
-          <span className="text-amber-700 text-xs font-semibold uppercase tracking-wider mb-1 text-center">Menunggu</span>
-          <span className="text-2xl font-black text-amber-600">{statPending}</span>
+        <div className="bg-amber-50/80 p-4 rounded-2xl border border-amber-200 shadow-sm flex items-center gap-3 hover:shadow-md transition-shadow group">
+          <div className="flex-shrink-0 p-2.5 bg-amber-100 text-amber-600 rounded-xl group-hover:scale-110 transition-transform">
+            <Clock className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-amber-700 text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate mb-1">Menunggu</p>
+            <p className="text-xl sm:text-2xl font-black text-amber-700 leading-none truncate">{statPending}</p>
+          </div>
         </div>
-        <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-200 shadow-sm flex flex-col justify-center items-center">
-          <span className="text-blue-700 text-xs font-semibold uppercase tracking-wider mb-1 text-center">Disetujui</span>
-          <span className="text-2xl font-black text-blue-600">{statGranted}</span>
+        <div className="bg-blue-50/80 p-4 rounded-2xl border border-blue-200 shadow-sm flex items-center gap-3 hover:shadow-md transition-shadow group">
+          <div className="flex-shrink-0 p-2.5 bg-blue-100 text-blue-600 rounded-xl group-hover:scale-110 transition-transform">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-blue-700 text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate mb-1">Disetujui</p>
+            <p className="text-xl sm:text-2xl font-black text-blue-700 leading-none truncate">{statGranted}</p>
+          </div>
         </div>
-        <div className="bg-green-50/50 p-4 rounded-2xl border border-green-200 shadow-sm flex flex-col justify-center items-center">
-          <span className="text-green-700 text-xs font-semibold uppercase tracking-wider mb-1 text-center">Selesai</span>
-          <span className="text-2xl font-black text-green-600">{statDone}</span>
+        <div className="bg-green-50/80 p-4 rounded-2xl border border-green-200 shadow-sm flex items-center gap-3 hover:shadow-md transition-shadow group">
+          <div className="flex-shrink-0 p-2.5 bg-green-100 text-green-600 rounded-xl group-hover:scale-110 transition-transform">
+            <CheckSquare className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-green-700 text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate mb-1">Selesai</p>
+            <p className="text-xl sm:text-2xl font-black text-green-700 leading-none truncate">{statDone}</p>
+          </div>
         </div>
-        <div className="bg-red-50/50 p-4 rounded-2xl border border-red-200 shadow-sm flex flex-col justify-center items-center">
-          <span className="text-red-700 text-xs font-semibold uppercase tracking-wider mb-1 text-center">Ditolak</span>
-          <span className="text-2xl font-black text-red-600">{statDeny}</span>
+        <div className="bg-red-50/80 p-4 rounded-2xl border border-red-200 shadow-sm flex items-center gap-3 hover:shadow-md transition-shadow group">
+          <div className="flex-shrink-0 p-2.5 bg-red-100 text-red-600 rounded-xl group-hover:scale-110 transition-transform">
+            <AlertCircle className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-red-700 text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate mb-1">Ditolak</p>
+            <p className="text-xl sm:text-2xl font-black text-red-700 leading-none truncate">{statDeny}</p>
+          </div>
         </div>
-        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center items-center">
-          <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1 text-center">Dibatalkan</span>
-          <span className="text-2xl font-black text-slate-500">{statCancelled}</span>
+        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 hover:shadow-md transition-shadow group">
+          <div className="flex-shrink-0 p-2.5 bg-slate-200 text-slate-600 rounded-xl group-hover:scale-110 transition-transform">
+            <Ban className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate mb-1">Dibatalkan</p>
+            <p className="text-xl sm:text-2xl font-black text-slate-700 leading-none truncate">{statCancelled}</p>
+          </div>
         </div>
       </div>
 
@@ -484,9 +469,27 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   <th className="p-5 pl-6 align-middle">
                     <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if(sortField === 'noForm') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('noForm'); setSortOrder('desc'); } }}>
                       <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">No Form</span>
-                      {sortField === 'noForm' && (
+                      {sortField === 'noForm' ? (
                         <span className="text-indigo-200 bg-indigo-900/50 rounded-md px-1.5 py-0.5 text-xs group-hover:bg-indigo-800 group-hover:text-white transition-colors font-bold">
                           {sortOrder === 'desc' ? '↓' : '↑'}
+                        </span>
+                      ) : (
+                        <span className="text-indigo-400/50 px-1.5 py-0.5 text-xs group-hover:text-indigo-200 transition-colors font-bold">
+                          ↕
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th className="p-5 align-middle">
+                    <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if(sortField === 'createdAt') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('createdAt'); setSortOrder('desc'); } }}>
+                      <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">Waktu Pengajuan</span>
+                      {sortField === 'createdAt' ? (
+                        <span className="text-indigo-200 bg-indigo-900/50 rounded-md px-1.5 py-0.5 text-xs group-hover:bg-indigo-800 group-hover:text-white transition-colors font-bold">
+                          {sortOrder === 'desc' ? '↓' : '↑'}
+                        </span>
+                      ) : (
+                        <span className="text-indigo-400/50 px-1.5 py-0.5 text-xs group-hover:text-indigo-200 transition-colors font-bold">
+                          ↕
                         </span>
                       )}
                     </div>
@@ -516,9 +519,13 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   <th className="p-5 align-middle">
                     <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if(sortField === 'tglMulai') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('tglMulai'); setSortOrder('desc'); } }}>
                       <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">Jadwal</span>
-                      {sortField === 'tglMulai' && (
+                      {sortField === 'tglMulai' ? (
                         <span className="text-indigo-200 bg-indigo-900/50 rounded-md px-1.5 py-0.5 text-xs group-hover:bg-indigo-800 group-hover:text-white transition-colors font-bold">
                           {sortOrder === 'desc' ? '↓' : '↑'}
+                        </span>
+                      ) : (
+                        <span className="text-indigo-400/50 px-1.5 py-0.5 text-xs group-hover:text-indigo-200 transition-colors font-bold">
+                          ↕
                         </span>
                       )}
                     </div>
@@ -602,7 +609,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               <tbody className="divide-y divide-slate-100">
                 {processedRequests.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="p-10 text-center text-slate-500 bg-white">
+                    <td colSpan={10} className="p-10 text-center text-slate-500 bg-white">
                       <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
                       <h3 className="text-lg font-bold text-slate-700">Tidak ada permintaan</h3>
                     </td>
@@ -612,6 +619,9 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   return (
                     <tr key={req.id} className="even:bg-slate-50 odd:bg-white hover:bg-slate-100 transition-colors">
                       <td className="p-5 pl-6 font-bold text-slate-900">{req.noForm}</td>
+                      <td className="p-5">
+                        <p className="text-sm text-slate-600 font-medium">{formatDateTime(req.createdAt)}</p>
+                      </td>
                       <td className="p-5">
                         <p className="font-semibold text-slate-800">{req.namaPemohon}</p>
                       </td>
@@ -879,41 +889,51 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Driver</label>
                     <div className="relative">
-                      <button
-                        type="button"
+                      <input
+                        type="text"
+                        required
+                        value={selectedDriver}
+                        onChange={(e) => {
+                          setSelectedDriver(e.target.value);
+                          setOpenDropdown('action-driver');
+                        }}
+                        onFocus={() => setOpenDropdown('action-driver')}
+                        placeholder="Ketik atau pilih driver..."
+                        className="w-full px-4 py-3 pr-10 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-slate-900"
+                      />
+                      <button 
+                        type="button" 
                         onClick={() => setOpenDropdown(openDropdown === 'action-driver' ? null : 'action-driver')}
-                        className="flex justify-between items-center w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-left"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center z-10 focus:outline-none"
                       >
-                        <span className={selectedDriver ? "text-slate-900" : "text-slate-500"}>
-                          {selectedDriver ? drivers.find(d => d.id.toString() === selectedDriver)?.nama : "-- Pilih Driver --"}
-                        </span>
-                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openDropdown === 'action-driver' ? 'rotate-180' : ''}`} />
                       </button>
                       {openDropdown === 'action-driver' && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
                           <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-y-auto overflow-x-hidden max-h-[380px] overscroll-contain font-normal text-slate-700">
-                            <button 
-                              type="button"
-                              onClick={() => { setSelectedDriver(""); setOpenDropdown(null); }} 
-                              className="w-full text-left px-4 py-3 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors border-b border-slate-100 text-slate-500"
-                            >
-                              -- Pilih Driver --
-                            </button>
-                            {drivers.map(d => (
+                            {drivers.filter(d => d.nama.toLowerCase().includes(selectedDriver.toLowerCase())).map(d => (
                               <button 
                                 key={d.id}
                                 type="button"
-                                onClick={() => { setSelectedDriver(d.id.toString()); setOpenDropdown(null); }} 
-                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${selectedDriver === d.id.toString() ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}
+                                onClick={() => { setSelectedDriver(d.nama); setOpenDropdown(null); }} 
+                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${selectedDriver === d.nama ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}
                               >
                                 {d.nama}
                               </button>
                             ))}
+                            {selectedDriver && !drivers.some(d => d.nama.toLowerCase() === selectedDriver.toLowerCase()) && (
+                              <button
+                                type="button"
+                                onClick={() => setOpenDropdown(null)}
+                                className="w-full text-left px-4 py-3 hover:bg-indigo-50 text-indigo-700 transition-colors border-t border-slate-100 text-sm font-semibold"
+                              >
+                                + Tambah "{selectedDriver}" sebagai driver
+                              </button>
+                            )}
                           </div>
                         </>
                       )}
-                      <input type="text" required value={selectedDriver} onChange={() => {}} className="opacity-0 absolute inset-0 -z-10 w-full h-full pointer-events-none" />
                     </div>
                   </div>
                   <div>
@@ -1015,109 +1035,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
           </div>
         </div>
       )}
-      {/* Add Driver Modal */}
-      {isAddDriverModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
-            <h3 className="text-xl font-bold text-slate-900 mb-4">Tambah Driver Baru</h3>
-            
-            <form onSubmit={handleAddDriver}>
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Nama Lengkap</label>
-                  <input 
-                    type="text"
-                    required 
-                    value={newDriverNama} 
-                    onChange={e => setNewDriverNama(e.target.value)}
-                    placeholder="Masukkan nama driver..."
-                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">No. Telepon / WhatsApp <span className="text-slate-400 font-normal text-xs">(Opsional)</span></label>
-                  <input 
-                    type="text"
-                    value={newDriverTelepon} 
-                    onChange={e => setNewDriverTelepon(e.target.value)}
-                    placeholder="Contoh: 08123456789"
-                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50"
-                  />
-                </div>
-              </div>
 
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsAddDriverModalOpen(false)}
-                  className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isAddingDriver || !newDriverNama.trim()}
-                  className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-full hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                >
-                  {isAddingDriver ? "Menyimpan..." : "Simpan Driver"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* Add Kendaraan Modal */}
-      {isAddKendaraanModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
-            <h3 className="text-xl font-bold text-slate-900 mb-4">Tambah Kendaraan Baru</h3>
-            
-            <form onSubmit={handleAddKendaraan}>
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Jenis Kendaraan</label>
-                  <input 
-                    type="text"
-                    required 
-                    value={newKendaraanJenis} 
-                    onChange={e => setNewKendaraanJenis(e.target.value)}
-                    placeholder="Contoh: Avanza Hitam"
-                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Nomor Polisi (Plat)</label>
-                  <input 
-                    type="text"
-                    required
-                    value={newKendaraanNopol} 
-                    onChange={e => setNewKendaraanNopol(e.target.value.toUpperCase())}
-                    placeholder="Contoh: B 1234 ABC"
-                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsAddKendaraanModalOpen(false)}
-                  className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isAddingKendaraan || !newKendaraanJenis.trim() || !newKendaraanNopol.trim()}
-                  className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-full hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                >
-                  {isAddingKendaraan ? "Menyimpan..." : "Simpan Kendaraan"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
       {actionModal === 'delete' && selectedRequest && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">

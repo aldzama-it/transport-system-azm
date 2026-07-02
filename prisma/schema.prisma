@@ -58,8 +58,8 @@ model Request {
   namaPemohon   String
   divisi        String
   tujuan        String          @db.Text
-  tglMulai      DateTime
-  tglSelesai    DateTime
+  tglMulai      DateTime?
+  tglSelesai    DateTime?
   status        RequestStatus   @default(pending)
   driverId      Int?
   driver        Driver?         @relation(fields: [driverId], references: [id])

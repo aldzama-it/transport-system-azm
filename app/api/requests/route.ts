@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     };
 
     const file = formData.get("buktiFile") as File | null;
-    
+
     if (!file) {
       return NextResponse.json({ error: "Bukti persetujuan wajib diupload" }, { status: 400 });
     }
