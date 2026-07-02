@@ -1,0 +1,184 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import * as xlsx from "xlsx";
+import { parse, isValid } from "date-fns";
+import { RequestStatus } from "@prisma/client";
+import { toZonedTime } from "date-fns-tz";
+
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  // Try DD/MM/YYYY HH:mm
+  let parsed = parse(dateStr, "dd/MM/yyyy HH:mm", new Date());
+  if (isValid(parsed)) return parsed;
+  // Try DD/MM/YYYY
+  parsed = parse(dateStr, "dd/MM/yyyy", new Date());
+  if (isValid(parsed)) return parsed;
+  
+  // Also handle Excel serial dates if xlsx passes them as numbers
+  if (!isNaN(Number(dateStr))) {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    return new Date(excelEpoch.getTime() + Number(dateStr) * 86400000);
+  }
+
+  // Fallback to standard Date parser
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) return d;
+  return null;
+}
+
+const statusMap: Record<string, RequestStatus> = {
+  "pending": RequestStatus.pending,
+  "disetujui (granted)": RequestStatus.granted,
+  "ditolak (deny)": RequestStatus.deny,
+  "dibatalkan (cancelled)": RequestStatus.cancelled,
+  "selesai (done)": RequestStatus.done,
+  "granted": RequestStatus.granted,
+  "deny": RequestStatus.deny,
+  "cancelled": RequestStatus.cancelled,
+  "done": RequestStatus.done
+};
+
+export async function POST(req: NextRequest) {
+  try {
+    const formData = await req.formData();
+    const file = formData.get("file") as File;
+
+    if (!file) {
+      return NextResponse.json({ error: "File Excel tidak ditemukan" }, { status: 400 });
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const workbook = xlsx.read(buffer, { type: "buffer" });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    
+    // Parse as an array of arrays to handle missing columns gracefully, or as JSON.
+    const rawData: any[] = xlsx.utils.sheet_to_json(sheet, { defval: "" });
+
+    if (!rawData || rawData.length === 0) {
+      return NextResponse.json({ error: "File Excel kosong" }, { status: 400 });
+    }
+
+    // Get all drivers and vehicles to match names/nopols
+    const allDrivers = await prisma.driver.findMany();
+    const allKendaraan = await prisma.kendaraan.findMany();
+
+    // Helper for noForm generation
+    const TIMEZONE = "Asia/Jakarta";
+    const now = toZonedTime(new Date(), TIMEZONE);
+    const monthStr = String(now.getMonth() + 1).padStart(3, '0');
+    const prefix = `AZM-FRM-405-005-${monthStr}`;
+    
+    let lastRequest = await prisma.request.findFirst({
+      where: { noForm: { startsWith: prefix } },
+      orderBy: { noForm: 'desc' }
+    });
+    
+    let nextSequence = 1;
+    if (lastRequest) {
+      const parts = lastRequest.noForm.split('-');
+      const lastSequenceStr = parts[5];
+      const lastSequence = parseInt(lastSequenceStr, 10);
+      if (!isNaN(lastSequence)) {
+        nextSequence = lastSequence + 1;
+      }
+    }
+
+    let successCount = 0;
+    let failedCount = 0;
+    
+    for (const row of rawData) {
+      try {
+        const noFormExcel = (row["No Form"] || "").toString().trim();
+        const namaPemohon = (row["Pemohon"] || "").toString().trim();
+        const divisi = (row["Divisi"] || "").toString().trim();
+        const tujuan = (row["Tujuan"] || "").toString().trim();
+        const tglMulaiExcel = (row["Tgl Mulai"] || row["Tgl & Jam Mulai"] || "").toString().trim();
+        const jamMulaiExcel = (row["Jam Mulai"] || "").toString().trim();
+        const tglSelesaiExcel = (row["Tgl Selesai"] || row["Tgl & Jam Selesai"] || "").toString().trim();
+        const jamSelesaiExcel = (row["Jam Selesai"] || "").toString().trim();
+        
+        const tglMulaiStr = jamMulaiExcel ? `${tglMulaiExcel} ${jamMulaiExcel}` : tglMulaiExcel;
+        const tglSelesaiStr = jamSelesaiExcel ? `${tglSelesaiExcel} ${jamSelesaiExcel}` : tglSelesaiExcel;
+        
+        const statusStr = (row["Status"] || "").toString().trim().toLowerCase();
+        const driverName = (row["Driver"] || "").toString().trim();
+        const jenisKendaraan = (row["Kendaraan"] || "").toString().trim();
+        const nopol = (row["No. Polisi"] || "").toString().trim();
+        const waktuPengajuanStr = (row["Waktu Pengajuan"] || "").toString().trim();
+        const alasanDeny = (row["Alasan Penolakan"] || "").toString().trim();
+        const alasanCancel = (row["Alasan Pembatalan"] || "").toString().trim();
+        const catatanKoor = (row["Catatan Koor"] || "").toString().trim();
+
+        // Must at least have these three basic fields to be considered valid
+        if (!namaPemohon || !divisi || !tujuan) {
+          failedCount++;
+          continue; 
+        }
+
+        const tglMulai = parseDate(tglMulaiStr) || new Date();
+        const tglSelesai = parseDate(tglSelesaiStr) || new Date();
+        
+        let status = statusMap[statusStr] || RequestStatus.done; // Default to done
+
+        let driverId = null;
+        if (driverName && driverName !== "-") {
+          const matchedDriver = allDrivers.find(d => d.nama.toLowerCase() === driverName.toLowerCase());
+          if (matchedDriver) driverId = matchedDriver.id;
+        }
+
+        let kendaraanId = null;
+        if (nopol && nopol !== "-") {
+          const matchedKendaraan = allKendaraan.find(k => k.nopol.toLowerCase() === nopol.toLowerCase());
+          if (matchedKendaraan) kendaraanId = matchedKendaraan.id;
+        } else if (jenisKendaraan && jenisKendaraan !== "-") {
+          const matchedKendaraan = allKendaraan.find(k => k.jenis.toLowerCase() === jenisKendaraan.toLowerCase());
+          if (matchedKendaraan) kendaraanId = matchedKendaraan.id;
+        }
+
+        let noForm = noFormExcel;
+        if (!noForm) {
+          noForm = `${prefix}-${nextSequence.toString().padStart(3, '0')}`;
+          nextSequence++;
+        }
+
+        await prisma.request.create({
+          data: {
+            noForm,
+            namaPemohon,
+            divisi,
+            tujuan,
+            tglMulai,
+            tglSelesai,
+            status,
+            createdAt: parseDate(waktuPengajuanStr) || undefined,
+            alasanDeny: alasanDeny || null,
+            alasanCancel: alasanCancel || null,
+            driverId,
+            kendaraanId,
+            history: {
+              create: {
+                status,
+                catatan: catatanKoor ? catatanKoor : "Diimpor dari Excel",
+              }
+            }
+          }
+        });
+
+        successCount++;
+      } catch (err) {
+        console.error("Failed to import row:", row, err);
+        failedCount++;
+      }
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `Import selesai. Berhasil: ${successCount}, Gagal: ${failedCount}`
+    });
+
+  } catch (error: any) {
+    console.error("Import error:", error);
+    return NextResponse.json({ error: "Terjadi kesalahan sistem saat import" }, { status: 500 });
+  }
+}

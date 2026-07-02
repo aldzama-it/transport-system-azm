@@ -15,13 +15,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (isNaN(id)) return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
 
     const body = await req.json();
-    const { driverId, kendaraanId } = body;
+    const { driverId, kendaraanId, catatan } = body;
 
     if (!driverId || !kendaraanId) {
       return NextResponse.json({ error: "Driver dan Kendaraan wajib dipilih" }, { status: 400 });
     }
 
-    const request = await assignRequest(id, parseInt((session.user as any).id, 10), parseInt(driverId, 10), parseInt(kendaraanId, 10));
+    const request = await assignRequest(id, parseInt((session.user as any).id, 10), parseInt(driverId, 10), parseInt(kendaraanId, 10), catatan);
     
     return NextResponse.json({ success: true, data: request });
   } catch (error: any) {

@@ -14,9 +14,18 @@ const statusConfig: Record<string, { color: string, icon: any, label: string }> 
   done: { color: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle2, label: "Selesai (Done)" },
 };
 
+const formatDateTime = (dateStr: string | Date, exportFormat = false) => {
+  const d = new Date(dateStr);
+  const timeStr = format(d, "HH:mm");
+  if (timeStr === "00:00" || timeStr === "23:59") {
+    return format(d, exportFormat ? "dd/MM/yyyy" : "dd MMM yyyy");
+  }
+  return format(d, exportFormat ? "dd/MM/yyyy HH:mm" : "dd MMM yyyy, HH:mm");
+};
+
 export default function TrackingView({ initialSearchQuery = "" }: { initialSearchQuery?: string }) {
   const router = useRouter();
-  
+
   const [search, setSearch] = useState(initialSearchQuery);
   const [requests, setRequests] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -30,12 +39,12 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
   const handleSearch = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!search.trim()) return;
-    
+
     setIsLoading(true);
     setHasSearched(true);
-    
+
     try {
-      const res = await fetch(`/api/requests?search=${encodeURIComponent(search)}`);
+      const res = await fetch(`/api/requests?search=${encodeURIComponent(search)}&tracking=true`);
       const data = await res.json();
       if (data.success) {
         setRequests(data.data);
@@ -54,7 +63,7 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
       setSearch(initialSearchQuery);
       handleSearch();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchRequestDetails = async (id: number) => {
@@ -120,7 +129,7 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="block w-full pl-10 sm:pl-12 pr-24 sm:pr-32 py-4 sm:py-5 border-2 border-slate-200 rounded-full focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 transition-all text-base sm:text-lg shadow-sm bg-white"
-            placeholder="No Form atau Nama Pemohon..."
+            placeholder="No Form Lengkap"
             autoComplete="off"
           />
           <button
@@ -148,9 +157,9 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
           {requests.map((req) => {
             const status = statusConfig[req.status];
             const StatusIcon = status.icon;
-            
+
             return (
-              <div 
+              <div
                 key={req.id}
                 onClick={() => fetchRequestDetails(req.id)}
                 className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group"
@@ -165,7 +174,7 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
                     {status.label}
                   </span>
                 </div>
-                
+
                 <div className="space-y-3 mb-6">
                   <div className="flex items-center text-sm text-slate-600">
                     <UserCircle className="w-4 h-4 mr-2 text-slate-400" />
@@ -173,7 +182,7 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
                   </div>
                   <div className="flex items-center text-sm text-slate-600">
                     <Calendar className="w-4 h-4 mr-2 text-slate-400" />
-                    <span>{format(new Date(req.tglMulai), "dd MMM yyyy, HH:mm")}</span>
+                    <span>{formatDateTime(req.tglMulai)}</span>
                   </div>
                 </div>
 
@@ -190,7 +199,7 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
         <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden relative mt-8">
           <div className="bg-slate-50 px-6 sm:px-8 py-6 border-b border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 relative z-20">
             <div>
-              <button 
+              <button
                 onClick={() => setSelectedRequest(null)}
                 className="text-sm text-indigo-600 font-medium hover:text-indigo-800 mb-2 inline-block"
               >
@@ -203,9 +212,9 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
                 </span>
               </h2>
             </div>
-            
+
             {(selectedRequest.status === "pending" || selectedRequest.status === "granted") && (
-              <button 
+              <button
                 onClick={() => setIsCancelModalOpen(true)}
                 className="px-4 py-2 border-2 border-red-200 text-red-600 font-semibold rounded-full hover:bg-red-50 focus:ring-2 focus:ring-red-500 transition-colors"
               >
@@ -220,43 +229,43 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
                   <span className="text-xs font-semibold text-slate-500 uppercase">Pemohon</span>
                   <p className="font-bold text-slate-900 text-lg mt-1">{selectedRequest.namaPemohon}</p>
-                  <p className="text-slate-600 flex items-center gap-1 mt-1"><Building className="w-4 h-4"/> {selectedRequest.divisi}</p>
+                  <p className="text-slate-600 flex items-center gap-1 mt-1"><Building className="w-4 h-4" /> {selectedRequest.divisi}</p>
                 </div>
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
                   <span className="text-xs font-semibold text-slate-500 uppercase">Jadwal</span>
-                  <p className="font-bold text-slate-900 mt-1">Mulai: {format(new Date(selectedRequest.tglMulai), "dd MMM yyyy, HH:mm")}</p>
-                  <p className="font-bold text-slate-900 mt-1">Selesai: {format(new Date(selectedRequest.tglSelesai), "dd MMM yyyy, HH:mm")}</p>
+                  <p className="font-bold text-slate-900 mt-1">Mulai: {formatDateTime(selectedRequest.tglMulai)}</p>
+                  <p className="font-bold text-slate-900 mt-1">Selesai: {formatDateTime(selectedRequest.tglSelesai)}</p>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><MapPin className="w-5 h-5 text-indigo-500"/> Tujuan Penggunaan</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><MapPin className="w-5 h-5 text-indigo-500" /> Tujuan Penggunaan</h3>
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-slate-700">
                   {selectedRequest.tujuan}
                 </div>
               </div>
 
               {selectedRequest.status === 'deny' && selectedRequest.alasanDeny && (
-                 <div>
-                 <h3 className="text-lg font-bold text-red-700 mb-3 flex items-center gap-2"><Ban className="w-5 h-5"/> Alasan Penolakan</h3>
-                 <div className="bg-red-50 p-5 rounded-2xl border border-red-200 text-red-800">
-                   {selectedRequest.alasanDeny}
-                 </div>
-               </div>
+                <div>
+                  <h3 className="text-lg font-bold text-red-700 mb-3 flex items-center gap-2"><Ban className="w-5 h-5" /> Alasan Penolakan</h3>
+                  <div className="bg-red-50 p-5 rounded-2xl border border-red-200 text-red-800">
+                    {selectedRequest.alasanDeny}
+                  </div>
+                </div>
               )}
 
               {selectedRequest.status === 'cancelled' && selectedRequest.alasanCancel && (
-                 <div>
-                 <h3 className="text-lg font-bold text-slate-700 mb-3 flex items-center gap-2"><Ban className="w-5 h-5"/> Alasan Dibatalkan</h3>
-                 <div className="bg-slate-100 p-5 rounded-2xl border border-slate-200 text-slate-800">
-                   {selectedRequest.alasanCancel}
-                 </div>
-               </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-700 mb-3 flex items-center gap-2"><Ban className="w-5 h-5" /> Alasan Dibatalkan</h3>
+                  <div className="bg-slate-100 p-5 rounded-2xl border border-slate-200 text-slate-800">
+                    {selectedRequest.alasanCancel}
+                  </div>
+                </div>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><UserCircle className="w-5 h-5 text-indigo-500"/> Driver</h3>
+                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><UserCircle className="w-5 h-5 text-indigo-500" /> Driver</h3>
                   <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 min-h-[100px] flex flex-col justify-center">
                     {selectedRequest.driver ? (
                       <p className="font-bold text-slate-900">{selectedRequest.driver.nama}</p>
@@ -266,7 +275,7 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><Car className="w-5 h-5 text-indigo-500"/> Kendaraan</h3>
+                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><Car className="w-5 h-5 text-indigo-500" /> Kendaraan</h3>
                   <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 min-h-[100px] flex flex-col justify-center">
                     {selectedRequest.kendaraan ? (
                       <>
@@ -281,10 +290,10 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><FileText className="w-5 h-5 text-indigo-500"/> Bukti Persetujuan</h3>
-                <a 
-                  href={selectedRequest.buktiFileUrl} 
-                  target="_blank" 
+                <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><FileText className="w-5 h-5 text-indigo-500" /> Bukti Persetujuan</h3>
+                <a
+                  href={selectedRequest.buktiFileUrl}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center px-4 py-3 bg-indigo-50 text-indigo-700 rounded-xl font-medium hover:bg-indigo-100 transition-colors border border-indigo-100"
                 >
@@ -327,7 +336,7 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
             <h3 className="text-xl font-bold text-slate-900 mb-2">Batalkan Permintaan</h3>
             <p className="text-sm text-slate-500 mb-6">Tindakan ini tidak dapat diurungkan. Silakan masukkan alasan pembatalan.</p>
-            
+
             <form onSubmit={handleCancel}>
               <textarea
                 required

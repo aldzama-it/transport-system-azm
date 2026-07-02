@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { 
   Search, FileText, Calendar, Building, MapPin, 
   Car, UserCircle, AlertCircle, CheckCircle2, 
-  Clock, Ban, Filter, Check, X, LayoutGrid, List, ChevronDown, Download
+  Clock, Ban, Filter, Check, X, LayoutGrid, List, ChevronDown, Download, Plus, Upload, Eye, Trash2, CheckSquare
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
@@ -17,6 +17,15 @@ const statusConfig: Record<string, { color: string, icon: any, label: string }> 
   deny: { color: "bg-red-100 text-red-700 border-red-200", icon: AlertCircle, label: "Ditolak (Deny)" },
   cancelled: { color: "bg-slate-100 text-slate-700 border-slate-200", icon: Ban, label: "Dibatalkan (Cancelled)" },
   done: { color: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle2, label: "Selesai (Done)" },
+};
+
+const formatDateTime = (dateStr: string | Date, exportFormat = false) => {
+  const d = new Date(dateStr);
+  const timeStr = format(d, "HH:mm");
+  if (timeStr === "00:00" || timeStr === "23:59") {
+    return format(d, exportFormat ? "dd/MM/yyyy" : "dd MMM yyyy");
+  }
+  return format(d, exportFormat ? "dd/MM/yyyy HH:mm" : "dd MMM yyyy, HH:mm");
 };
 
 export default function DashboardClient({ readOnly = false }: { readOnly?: boolean }) {
@@ -34,15 +43,93 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   const [dateTo, setDateTo] = useState("");
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  const [sortField, setSortField] = useState<"tglMulai" | "noForm">("noForm");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, filterDivisi, filterKendaraan, filterDriver, search, dateFrom, dateTo, sortOrder, sortField]);
+
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
-  const [actionModal, setActionModal] = useState<"assign" | "deny" | "done" | null>(null);
+  const [actionModal, setActionModal] = useState<"assign" | "deny" | "done" | "delete" | null>(null);
   
   const [selectedDriver, setSelectedDriver] = useState("");
   const [selectedKendaraan, setSelectedKendaraan] = useState("");
+  const [assignCatatan, setAssignCatatan] = useState("");
   const [alasanDeny, setAlasanDeny] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [buktiModal, setBuktiModal] = useState<string | null>(null);
+
+  const [isAddDriverModalOpen, setIsAddDriverModalOpen] = useState(false);
+  const [newDriverNama, setNewDriverNama] = useState("");
+  const [newDriverTelepon, setNewDriverTelepon] = useState("");
+  const [isAddingDriver, setIsAddingDriver] = useState(false);
+
+  const handleAddDriver = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDriverNama.trim()) {
+      toast.error("Nama driver wajib diisi");
+      return;
+    }
+    setIsAddingDriver(true);
+    try {
+      const res = await fetch("/api/drivers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nama: newDriverNama, telepon: newDriverTelepon }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Driver berhasil ditambahkan");
+        setIsAddDriverModalOpen(false);
+        setNewDriverNama("");
+        setNewDriverTelepon("");
+        fetchData();
+      } else {
+        toast.error(data.error || "Gagal menambah driver");
+      }
+    } catch (e) {
+      toast.error("Terjadi kesalahan sistem");
+    } finally {
+      setIsAddingDriver(false);
+    }
+  };
+
+  const [isAddKendaraanModalOpen, setIsAddKendaraanModalOpen] = useState(false);
+  const [newKendaraanJenis, setNewKendaraanJenis] = useState("");
+  const [newKendaraanNopol, setNewKendaraanNopol] = useState("");
+  const [isAddingKendaraan, setIsAddingKendaraan] = useState(false);
+
+  const handleAddKendaraan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newKendaraanJenis.trim() || !newKendaraanNopol.trim()) {
+      toast.error("Jenis dan Nopol wajib diisi");
+      return;
+    }
+    setIsAddingKendaraan(true);
+    try {
+      const res = await fetch("/api/kendaraan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jenis: newKendaraanJenis, nopol: newKendaraanNopol }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Kendaraan berhasil ditambahkan");
+        setIsAddKendaraanModalOpen(false);
+        setNewKendaraanJenis("");
+        setNewKendaraanNopol("");
+        fetchData();
+      } else {
+        toast.error(data.error || "Gagal menambah kendaraan");
+      }
+    } catch (e) {
+      toast.error("Terjadi kesalahan sistem");
+    } finally {
+      setIsAddingKendaraan(false);
+    }
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -113,10 +200,20 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   const uniqueDivisi = Array.from(new Set(requests.map(r => r.divisi))).filter(Boolean);
 
   processedRequests.sort((a, b) => {
-    const dateA = new Date(a.tglMulai).getTime();
-    const dateB = new Date(b.tglMulai).getTime();
-    return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    if (sortField === "tglMulai") {
+      const dateA = new Date(a.tglMulai).getTime();
+      const dateB = new Date(b.tglMulai).getTime();
+      return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    } else {
+      return sortOrder === "desc" 
+        ? b.noForm.localeCompare(a.noForm)
+        : a.noForm.localeCompare(b.noForm);
+    }
   });
+
+  const ITEMS_PER_PAGE = 20;
+  const totalPages = Math.ceil(processedRequests.length / ITEMS_PER_PAGE);
+  const paginatedRequests = processedRequests.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const handleAction = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,9 +224,11 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
       let endpoint = `/api/requests/${selectedRequest.id}/`;
       let body: any = {};
 
-      if (actionModal === 'assign') {
+      if (actionModal === 'delete') {
+        endpoint = `/api/requests/${selectedRequest.id}`;
+      } else if (actionModal === 'assign') {
         endpoint += 'assign';
-        body = { driverId: selectedDriver, kendaraanId: selectedKendaraan };
+        body = { driverId: selectedDriver, kendaraanId: selectedKendaraan, catatan: assignCatatan };
       } else if (actionModal === 'deny') {
         endpoint += 'deny';
         body = { alasanDeny };
@@ -138,9 +237,9 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
       }
 
       const res = await fetch(endpoint, {
-        method: 'PATCH',
+        method: actionModal === 'delete' ? 'DELETE' : 'PATCH',
         headers: { "Content-Type": "application/json" },
-        body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined
+        body: actionModal !== 'delete' && Object.keys(body).length > 0 ? JSON.stringify(body) : undefined
       });
       
       const data = await res.json();
@@ -148,6 +247,8 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
         toast.success("Tindakan berhasil disimpan");
         setActionModal(null);
         setSelectedRequest(null);
+        setAssignCatatan("");
+        setAlasanDeny("");
         fetchData();
       } else {
         toast.error(data.error || "Gagal menyimpan");
@@ -156,6 +257,63 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
       toast.error("Terjadi kesalahan");
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleDownloadTemplate = () => {
+    const templateData = [{
+      "No Form": "",
+      "Pemohon": "John Doe",
+      "Divisi": "Marketing",
+      "Tujuan": "Meeting Klien",
+      "Tgl Mulai": "25/08/2026",
+      "Jam Mulai": "08:00",
+      "Tgl Selesai": "25/08/2026",
+      "Jam Selesai": "17:00",
+      "Status": "Selesai (Done)",
+      "Driver": "Nama Driver (Opsional)",
+      "Kendaraan": "Jenis Kendaraan (Opsional)",
+      "No. Polisi": "W 1234 XX (Opsional)",
+      "Waktu Pengajuan": "24/08/2026 10:00 (Opsional)",
+      "Alasan Penolakan": "Opsional, jika status ditolak",
+      "Alasan Pembatalan": "Opsional, jika status dibatalkan",
+      "Catatan Koor": "Catatan dari koordinator (Opsional)"
+    }];
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
+    XLSX.writeFile(workbook, `Template_Import_Transport.xlsx`);
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/import", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        toast.success(data.message);
+        fetchData(); // Refresh data
+      } else {
+        toast.error(data.error || "Gagal mengimpor data");
+      }
+    } catch (err) {
+      toast.error("Terjadi kesalahan sistem saat import");
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -174,36 +332,81 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
           <p className="text-slate-500">Kelola permintaan kendaraan operasional.</p>
         </div>
         
-        <button
-          onClick={() => {
-            if (requests.length === 0) {
-              toast.error("Tidak ada data untuk diekspor");
-              return;
-            }
-            const exportData = requests.map(req => ({
-              "No Form": req.noForm,
-              "Pemohon": req.namaPemohon,
-              "Divisi": req.divisi,
-              "Tujuan": req.tujuan,
-              "Tgl Mulai": format(new Date(req.tglMulai), "dd/MM/yyyy HH:mm"),
-              "Tgl Selesai": format(new Date(req.tglSelesai), "dd/MM/yyyy HH:mm"),
-              "Status": statusConfig[req.status]?.label || req.status,
-              "Driver": req.driver ? req.driver.nama : "-",
-              "Kendaraan": req.kendaraan ? req.kendaraan.jenis : "-",
-              "No. Polisi": req.kendaraan ? req.kendaraan.nopol : "-",
-              "Waktu Pengajuan": format(new Date(req.createdAt), "dd/MM/yyyy HH:mm")
-            }));
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Data Transport");
-            XLSX.writeFile(workbook, `Data_Transport_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`);
-            toast.success("Data berhasil diekspor ke Excel");
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-sm focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-        >
-          <Download className="w-4 h-4" />
-          Export Excel
-        </button>
+        <div className="flex items-center gap-2">
+          {!readOnly && (
+            <>
+              <button
+                onClick={() => setIsAddDriverModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              >
+                <Plus className="w-4 h-4" />
+                Tambah Driver
+              </button>
+              <button
+                onClick={() => setIsAddKendaraanModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              >
+                <Plus className="w-4 h-4" />
+                Tambah Kendaraan
+              </button>
+              <button
+                onClick={handleDownloadTemplate}
+                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                <Download className="w-4 h-4" />
+                Template
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isImporting}
+                className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors shadow-sm focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50"
+              >
+                <Upload className="w-4 h-4" />
+                {isImporting ? "Mengimpor..." : "Import"}
+              </button>
+              <input 
+                type="file" 
+                accept=".xlsx" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handleImport} 
+              />
+            </>
+          )}
+          <button
+            onClick={() => {
+              if (processedRequests.length === 0) {
+                toast.error("Tidak ada data untuk diekspor");
+                return;
+              }
+              const exportData = processedRequests.map(req => ({
+                "No Form": req.noForm,
+                "Pemohon": req.namaPemohon,
+                "Divisi": req.divisi,
+                "Tujuan": req.tujuan,
+                "Tgl Mulai": format(new Date(req.tglMulai), "dd/MM/yyyy"),
+                "Jam Mulai": format(new Date(req.tglMulai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglMulai), "HH:mm"),
+                "Tgl Selesai": format(new Date(req.tglSelesai), "dd/MM/yyyy"),
+                "Jam Selesai": format(new Date(req.tglSelesai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglSelesai), "HH:mm"),
+                "Status": statusConfig[req.status]?.label || req.status,
+                "Driver": req.driver ? req.driver.nama : "-",
+                "Kendaraan": req.kendaraan ? req.kendaraan.jenis : "-",
+                "No. Polisi": req.kendaraan ? req.kendaraan.nopol : "-",
+                "Waktu Pengajuan": format(new Date(req.createdAt), "dd/MM/yyyy HH:mm"),
+                "Catatan Koor": req.history?.find((h: any) => h.status === 'granted')?.catatan || ""
+              }));
+              const worksheet = XLSX.utils.json_to_sheet(exportData);
+              const workbook = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(workbook, worksheet, "Data Transport");
+              XLSX.writeFile(workbook, `Data_Transport_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`);
+              toast.success("Data berhasil diekspor ke Excel");
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-sm focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+          >
+            <Download className="w-4 h-4" />
+            Export Excel
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
@@ -278,7 +481,16 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
             <table className="w-full text-left border-collapse min-w-max">
               <thead>
                 <tr className="bg-indigo-600 border-b border-indigo-700 text-sm font-semibold text-white uppercase tracking-wider">
-                  <th className="p-5 pl-6 align-middle"><span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">No Form</span></th>
+                  <th className="p-5 pl-6 align-middle">
+                    <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if(sortField === 'noForm') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('noForm'); setSortOrder('desc'); } }}>
+                      <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">No Form</span>
+                      {sortField === 'noForm' && (
+                        <span className="text-indigo-200 bg-indigo-900/50 rounded-md px-1.5 py-0.5 text-xs group-hover:bg-indigo-800 group-hover:text-white transition-colors font-bold">
+                          {sortOrder === 'desc' ? '↓' : '↑'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
                   <th className="p-5 align-middle"><span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">Pemohon</span></th>
                   <th className="p-5 align-middle">
                     <div className="flex items-center gap-1.5 w-max">
@@ -291,7 +503,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                           <ChevronDown className="w-4 h-4 text-indigo-300 hover:text-white cursor-pointer" />
                         </button>
                         {openDropdown === 'divisi' && (
-                          <div className="absolute top-full mt-2 left-0 w-48 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden font-normal text-slate-700 capitalize">
+                          <div className="absolute top-full mt-2 left-0 w-48 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-y-auto overflow-x-hidden max-h-64 overscroll-contain font-normal text-slate-700 capitalize">
                             <button onClick={() => { setFilterDivisi('all'); setOpenDropdown(null); }} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${filterDivisi === 'all' ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}>Semua Divisi</button>
                             {uniqueDivisi.map(d => (
                               <button key={d as string} onClick={() => { setFilterDivisi(d as string); setOpenDropdown(null); }} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${filterDivisi === (d as string) ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}>{d as string}</button>
@@ -302,11 +514,13 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                     </div>
                   </th>
                   <th className="p-5 align-middle">
-                    <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}>
+                    <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if(sortField === 'tglMulai') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('tglMulai'); setSortOrder('desc'); } }}>
                       <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">Jadwal</span>
-                      <span className="text-indigo-200 bg-indigo-900/50 rounded-md px-1.5 py-0.5 text-xs group-hover:bg-indigo-800 group-hover:text-white transition-colors font-bold">
-                        {sortOrder === 'desc' ? '↓' : '↑'}
-                      </span>
+                      {sortField === 'tglMulai' && (
+                        <span className="text-indigo-200 bg-indigo-900/50 rounded-md px-1.5 py-0.5 text-xs group-hover:bg-indigo-800 group-hover:text-white transition-colors font-bold">
+                          {sortOrder === 'desc' ? '↓' : '↑'}
+                        </span>
+                      )}
                     </div>
                   </th>
                   <th className="p-5 align-middle"><span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">Tujuan</span></th>
@@ -324,7 +538,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                           <ChevronDown className="w-4 h-4 text-indigo-300 hover:text-white cursor-pointer" />
                         </button>
                         {openDropdown === 'driver' && (
-                          <div className="absolute top-full mt-2 left-0 w-48 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden font-normal text-slate-700 capitalize">
+                          <div className="absolute top-full mt-2 left-0 w-48 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-y-auto overflow-x-hidden max-h-64 overscroll-contain font-normal text-slate-700 capitalize">
                             <button onClick={() => { setFilterDriver('all'); setOpenDropdown(null); }} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${filterDriver === 'all' ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}>Semua Driver</button>
                             <button onClick={() => { setFilterDriver('none'); setOpenDropdown(null); }} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${filterDriver === 'none' ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}>Belum Ditugaskan</button>
                             {drivers.map(d => (
@@ -348,7 +562,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                           <ChevronDown className="w-4 h-4 text-indigo-300 hover:text-white cursor-pointer" />
                         </button>
                         {openDropdown === 'kendaraan' && (
-                          <div className="absolute top-full mt-2 left-0 w-48 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden font-normal text-slate-700 capitalize">
+                          <div className="absolute top-full mt-2 left-0 w-48 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-y-auto overflow-x-hidden max-h-64 overscroll-contain font-normal text-slate-700 capitalize">
                             <button onClick={() => { setFilterKendaraan('all'); setOpenDropdown(null); }} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${filterKendaraan === 'all' ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}>Semua Kendaraan</button>
                             <button onClick={() => { setFilterKendaraan('none'); setOpenDropdown(null); }} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${filterKendaraan === 'none' ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}>Belum Ditugaskan</button>
                             {kendaraan.map(k => (
@@ -372,7 +586,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                           <ChevronDown className="w-4 h-4 text-indigo-300 hover:text-white cursor-pointer" />
                         </button>
                         {openDropdown === 'status' && (
-                          <div className="absolute top-full mt-2 left-0 w-48 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden font-normal text-slate-700 capitalize">
+                          <div className="absolute top-full mt-2 left-0 w-48 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-y-auto overflow-x-hidden max-h-64 overscroll-contain font-normal text-slate-700 capitalize">
                             <button onClick={() => { setFilterStatus('all'); setOpenDropdown(null); }} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${filterStatus === 'all' ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}>Semua Status</button>
                             {Object.keys(statusConfig).map(k => (
                               <button key={k} onClick={() => { setFilterStatus(k); setOpenDropdown(null); }} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${filterStatus === k ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}>{statusConfig[k].label}</button>
@@ -393,7 +607,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                       <h3 className="text-lg font-bold text-slate-700">Tidak ada permintaan</h3>
                     </td>
                   </tr>
-                ) : processedRequests.map(req => {
+                ) : paginatedRequests.map(req => {
                   const status = statusConfig[req.status];
                   return (
                     <tr key={req.id} className="even:bg-slate-50 odd:bg-white hover:bg-slate-100 transition-colors">
@@ -405,17 +619,20 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                         <p className="text-sm text-slate-600">{req.divisi}</p>
                       </td>
                       <td className="p-5">
-                        <p className="text-sm text-slate-800 font-medium">{format(new Date(req.tglMulai), "dd MMM yyyy, HH:mm")}</p>
-                        <p className="text-xs text-slate-500">s/d {format(new Date(req.tglSelesai), "dd MMM yyyy, HH:mm")}</p>
+                        <p className="text-sm text-slate-800 font-medium">{formatDateTime(req.tglMulai)}</p>
+                        <p className="text-xs text-slate-500">s/d {formatDateTime(req.tglSelesai)}</p>
                       </td>
                       <td className="p-5">
                         <p className="text-sm text-slate-700 line-clamp-2 max-w-[200px]" title={req.tujuan}>{req.tujuan}</p>
                       </td>
                       <td className="p-5">
                         {req.buktiFileUrl ? (
-                          <a href={req.buktiFileUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 text-sm font-medium">
+                          <button 
+                            onClick={() => setBuktiModal(req.buktiFileUrl)} 
+                            className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 text-sm font-medium focus:outline-none"
+                          >
                             <FileText className="w-4 h-4" /> Lihat
-                          </a>
+                          </button>
                         ) : (
                           <span className="text-slate-300">-</span>
                         )}
@@ -449,42 +666,68 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                               <span className="font-semibold text-slate-600">Alasan:</span> {req.alasanCancel}
                             </span>
                           )}
+                          {(req.status === 'granted' || req.status === 'done') && (
+                            (() => {
+                              const koorCatatan = req.history?.find((h: any) => h.status === 'granted')?.catatan;
+                              if (koorCatatan && koorCatatan !== "Driver dan kendaraan di-assign" && koorCatatan !== "Diimpor dari Excel") {
+                                return (
+                                  <span className="text-[10px] text-indigo-600 max-w-[140px] line-clamp-2 whitespace-normal break-words mt-1" title={koorCatatan}>
+                                    <span className="font-semibold text-indigo-700">Koor:</span> {koorCatatan}
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()
+                          )}
                         </div>
                       </td>
                       <td className="p-5 pr-6 text-right space-x-2 min-w-[200px]">
                         <button 
+                          title="Detail"
                           onClick={async () => {
                             const res = await fetch(`/api/requests/${req.id}`);
                             const data = await res.json();
                             if (data.success) setSelectedRequest(data.data);
                           }}
-                          className="px-3 py-1.5 bg-white text-slate-600 font-semibold border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-sm shadow-sm inline-block"
+                          className="p-2 bg-white text-slate-600 font-semibold border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-sm inline-flex items-center justify-center"
                         >
-                          Detail
+                          <Eye className="w-4 h-4" />
                         </button>
                         
                         {!readOnly && req.status === 'pending' && (
                           <>
                             <button 
+                              title="Setujui"
                               onClick={() => { setSelectedRequest(req); setActionModal('assign'); }}
-                              className="px-3 py-1.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors text-sm shadow-sm inline-block"
+                              className="p-2 bg-indigo-50 text-indigo-600 font-semibold border border-indigo-200 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
                             >
-                              Setujui
+                              <Check className="w-4 h-4" />
                             </button>
                             <button 
+                              title="Tolak"
                               onClick={() => { setSelectedRequest(req); setActionModal('deny'); }}
-                              className="px-3 py-1.5 bg-red-100 text-red-700 font-semibold rounded-lg hover:bg-red-200 transition-colors text-sm shadow-sm border border-red-200 inline-block"
+                              className="p-2 bg-red-50 text-red-600 font-semibold border border-red-200 rounded-lg hover:bg-red-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
                             >
-                              Tolak
+                              <X className="w-4 h-4" />
                             </button>
                           </>
                         )}
                         {!readOnly && req.status === 'granted' && (
                           <button 
+                            title="Selesai"
                             onClick={() => { setSelectedRequest(req); setActionModal('done'); }}
-                            className="px-3 py-1.5 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors text-sm shadow-sm inline-block"
+                            className="p-2 bg-green-50 text-green-600 font-semibold border border-green-200 rounded-lg hover:bg-green-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
                           >
-                            Selesai
+                            <CheckSquare className="w-4 h-4" />
+                          </button>
+                        )}
+                        {!readOnly && (
+                          <button 
+                            title="Hapus"
+                            onClick={() => { setSelectedRequest(req); setActionModal('delete'); }}
+                            className="p-2 bg-slate-50 text-red-600 font-semibold border border-slate-200 rounded-lg hover:bg-red-100 transition-colors shadow-sm inline-flex items-center justify-center"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         )}
                       </td>
@@ -494,6 +737,41 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               </tbody>
             </table>
           </div>
+          
+          {totalPages > 1 && (
+            <div className="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-between">
+              <span className="text-sm text-slate-500">
+                Menampilkan <span className="font-semibold text-slate-700">{((currentPage - 1) * ITEMS_PER_PAGE) + 1}</span> - <span className="font-semibold text-slate-700">{Math.min(currentPage * ITEMS_PER_PAGE, processedRequests.length)}</span> dari <span className="font-semibold text-slate-700">{processedRequests.length}</span> data
+              </span>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                >
+                  Sebelumnnya
+                </button>
+                <div className="flex gap-1 items-center">
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <button
+                      key={i + 1}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center transition-colors ${currentPage === i + 1 ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                >
+                  Selanjutnya
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -530,7 +808,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Jadwal & Tujuan</h3>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
                   <p className="font-bold text-slate-900 text-sm">
-                    {format(new Date(selectedRequest.tglMulai), "dd MMM yyyy, HH:mm")} <span className="text-slate-400 font-normal mx-2">s/d</span> {format(new Date(selectedRequest.tglSelesai), "dd MMM yyyy, HH:mm")}
+                    {formatDateTime(selectedRequest.tglMulai)} <span className="text-slate-400 font-normal mx-2">s/d</span> {formatDateTime(selectedRequest.tglSelesai)}
                   </p>
                   <p className="text-slate-700">{selectedRequest.tujuan}</p>
                   <a 
@@ -565,7 +843,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               <div>
                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Riwayat</h3>
                 <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-200">
-                  {selectedRequest.history.map((hist: any) => {
+                  {selectedRequest.history?.map((hist: any) => {
                     const stat = statusConfig[hist.status];
                     return (
                       <div key={hist.id} className="relative flex items-start gap-4">
@@ -600,27 +878,98 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 <div className="space-y-4 mb-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Driver</label>
-                    <select 
-                      required 
-                      value={selectedDriver} 
-                      onChange={e => setSelectedDriver(e.target.value)}
-                      className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50"
-                    >
-                      <option value="">-- Pilih Driver --</option>
-                      {drivers.map(d => <option key={d.id} value={d.id}>{d.nama}</option>)}
-                    </select>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setOpenDropdown(openDropdown === 'action-driver' ? null : 'action-driver')}
+                        className="flex justify-between items-center w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-left"
+                      >
+                        <span className={selectedDriver ? "text-slate-900" : "text-slate-500"}>
+                          {selectedDriver ? drivers.find(d => d.id.toString() === selectedDriver)?.nama : "-- Pilih Driver --"}
+                        </span>
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                      </button>
+                      {openDropdown === 'action-driver' && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
+                          <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-y-auto overflow-x-hidden max-h-[380px] overscroll-contain font-normal text-slate-700">
+                            <button 
+                              type="button"
+                              onClick={() => { setSelectedDriver(""); setOpenDropdown(null); }} 
+                              className="w-full text-left px-4 py-3 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors border-b border-slate-100 text-slate-500"
+                            >
+                              -- Pilih Driver --
+                            </button>
+                            {drivers.map(d => (
+                              <button 
+                                key={d.id}
+                                type="button"
+                                onClick={() => { setSelectedDriver(d.id.toString()); setOpenDropdown(null); }} 
+                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${selectedDriver === d.id.toString() ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}
+                              >
+                                {d.nama}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      <input type="text" required value={selectedDriver} onChange={() => {}} className="opacity-0 absolute inset-0 -z-10 w-full h-full pointer-events-none" />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Kendaraan</label>
-                    <select 
-                      required 
-                      value={selectedKendaraan} 
-                      onChange={e => setSelectedKendaraan(e.target.value)}
-                      className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50"
-                    >
-                      <option value="">-- Pilih Kendaraan --</option>
-                      {kendaraan.map(k => <option key={k.id} value={k.id}>{k.jenis} - {k.nopol}</option>)}
-                    </select>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setOpenDropdown(openDropdown === 'action-kendaraan' ? null : 'action-kendaraan')}
+                        className="flex justify-between items-center w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-left"
+                      >
+                        <span className={selectedKendaraan ? "text-slate-900" : "text-slate-500"}>
+                          {selectedKendaraan ? (
+                            (() => {
+                              const k = kendaraan.find(k => k.id.toString() === selectedKendaraan);
+                              return k ? `${k.jenis} - ${k.nopol}` : "-- Pilih Kendaraan --";
+                            })()
+                          ) : "-- Pilih Kendaraan --"}
+                        </span>
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                      </button>
+                      {openDropdown === 'action-kendaraan' && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
+                          <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-y-auto overflow-x-hidden max-h-[380px] overscroll-contain font-normal text-slate-700">
+                            <button 
+                              type="button"
+                              onClick={() => { setSelectedKendaraan(""); setOpenDropdown(null); }} 
+                              className="w-full text-left px-4 py-3 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors border-b border-slate-100 text-slate-500"
+                            >
+                              -- Pilih Kendaraan --
+                            </button>
+                            {kendaraan.map(k => (
+                              <button 
+                                key={k.id}
+                                type="button"
+                                onClick={() => { setSelectedKendaraan(k.id.toString()); setOpenDropdown(null); }} 
+                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${selectedKendaraan === k.id.toString() ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}
+                              >
+                                {k.jenis} - {k.nopol}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      <input type="text" required value={selectedKendaraan} onChange={() => {}} className="opacity-0 absolute inset-0 -z-10 w-full h-full pointer-events-none" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Catatan (Opsional)</label>
+                    <textarea
+                      rows={2}
+                      value={assignCatatan}
+                      onChange={(e) => setAssignCatatan(e.target.value)}
+                      placeholder="Masukkan catatan tambahan..."
+                      className="block w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 bg-slate-50 resize-none"
+                    />
                   </div>
                 </div>
               )}
@@ -645,7 +994,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setActionModal(null)}
+                  onClick={() => { setActionModal(null); setSelectedRequest(null); }}
                   className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
                 >
                   Batal
@@ -663,6 +1012,182 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Add Driver Modal */}
+      {isAddDriverModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold text-slate-900 mb-4">Tambah Driver Baru</h3>
+            
+            <form onSubmit={handleAddDriver}>
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Nama Lengkap</label>
+                  <input 
+                    type="text"
+                    required 
+                    value={newDriverNama} 
+                    onChange={e => setNewDriverNama(e.target.value)}
+                    placeholder="Masukkan nama driver..."
+                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">No. Telepon / WhatsApp <span className="text-slate-400 font-normal text-xs">(Opsional)</span></label>
+                  <input 
+                    type="text"
+                    value={newDriverTelepon} 
+                    onChange={e => setNewDriverTelepon(e.target.value)}
+                    placeholder="Contoh: 08123456789"
+                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAddDriverModalOpen(false)}
+                  className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAddingDriver || !newDriverNama.trim()}
+                  className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-full hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                >
+                  {isAddingDriver ? "Menyimpan..." : "Simpan Driver"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Add Kendaraan Modal */}
+      {isAddKendaraanModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold text-slate-900 mb-4">Tambah Kendaraan Baru</h3>
+            
+            <form onSubmit={handleAddKendaraan}>
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Jenis Kendaraan</label>
+                  <input 
+                    type="text"
+                    required 
+                    value={newKendaraanJenis} 
+                    onChange={e => setNewKendaraanJenis(e.target.value)}
+                    placeholder="Contoh: Avanza Hitam"
+                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Nomor Polisi (Plat)</label>
+                  <input 
+                    type="text"
+                    required
+                    value={newKendaraanNopol} 
+                    onChange={e => setNewKendaraanNopol(e.target.value.toUpperCase())}
+                    placeholder="Contoh: B 1234 ABC"
+                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAddKendaraanModalOpen(false)}
+                  className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAddingKendaraan || !newKendaraanJenis.trim() || !newKendaraanNopol.trim()}
+                  className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-full hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                >
+                  {isAddingKendaraan ? "Menyimpan..." : "Simpan Kendaraan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {actionModal === 'delete' && selectedRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-red-50">
+              <h3 className="text-lg font-bold text-red-700 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                Hapus Permintaan
+              </h3>
+              <button onClick={() => setActionModal(null)} className="text-red-400 hover:text-red-600 transition-colors"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6">
+              <p className="text-slate-600 mb-6 leading-relaxed">
+                Apakah Anda yakin ingin menghapus form <span className="font-bold text-slate-800">{selectedRequest.noForm}</span> atas nama <span className="font-bold text-slate-800">{selectedRequest.namaPemohon}</span>? 
+                <br/><br/>
+                <span className="text-red-600 font-semibold text-sm">Tindakan ini tidak dapat dibatalkan dan seluruh riwayat akan dihapus.</span>
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button 
+                  onClick={() => setActionModal(null)}
+                  className="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-50 rounded-xl transition-colors"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={handleAction}
+                  disabled={isProcessing}
+                  className="px-4 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                >
+                  {isProcessing ? "Menghapus..." : "Ya, Hapus Form"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Bukti */}
+      {buktiModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm" onClick={() => setBuktiModal(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-indigo-600" />
+                Bukti File
+              </h3>
+              <div className="flex items-center gap-3">
+                <a href={buktiModal} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 text-sm font-semibold flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
+                  Buka Tab Baru
+                </a>
+                <button onClick={() => setBuktiModal(null)} className="text-slate-400 hover:text-slate-600 transition-colors bg-white hover:bg-slate-200 p-1.5 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 bg-slate-100/50 overflow-hidden relative flex items-center justify-center p-6">
+              {buktiModal.match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i) || buktiModal.startsWith("data:image/") ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img 
+                  src={buktiModal} 
+                  alt="Bukti File"
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-sm bg-white" 
+                />
+              ) : (
+                <iframe 
+                  src={buktiModal} 
+                  className="w-full h-full border-0 bg-white rounded-lg shadow-sm" 
+                  title="Bukti File"
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
