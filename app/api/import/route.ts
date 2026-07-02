@@ -14,6 +14,13 @@ function parseDate(dateStr: string): Date | null {
   parsed = parse(dateStr, "dd/MM/yyyy", new Date());
   if (isValid(parsed)) return parsed;
   
+  // Try YYYY-MM-DD HH:mm
+  parsed = parse(dateStr, "yyyy-MM-dd HH:mm", new Date());
+  if (isValid(parsed)) return parsed;
+  // Try YYYY-MM-DD
+  parsed = parse(dateStr, "yyyy-MM-dd", new Date());
+  if (isValid(parsed)) return parsed;
+  
   // Also handle Excel serial dates if xlsx passes them as numbers
   if (!isNaN(Number(dateStr))) {
     const excelEpoch = new Date(Date.UTC(1899, 11, 30));
@@ -21,7 +28,9 @@ function parseDate(dateStr: string): Date | null {
   }
 
   // Fallback to standard Date parser
-  const d = new Date(dateStr);
+  // Append T00:00:00 to force local time parsing if it's just a date
+  const forceLocal = dateStr.length === 10 && dateStr.includes("-") ? `${dateStr}T00:00:00` : dateStr;
+  const d = new Date(forceLocal);
   if (!isNaN(d.getTime())) return d;
   return null;
 }
@@ -155,16 +164,44 @@ export async function POST(req: NextRequest) {
         let driverId = null;
         if (driverName && driverName !== "-") {
           const matchedDriver = allDrivers.find(d => d.nama.toLowerCase() === driverName.toLowerCase());
-          if (matchedDriver) driverId = matchedDriver.id;
+          if (matchedDriver) {
+            driverId = matchedDriver.id;
+          } else {
+            // Auto create missing driver
+            const newDriver = await prisma.driver.create({
+              data: { nama: driverName }
+            });
+            allDrivers.push(newDriver);
+            driverId = newDriver.id;
+          }
         }
 
         let kendaraanId = null;
-        if (nopol && nopol !== "-") {
-          const matchedKendaraan = allKendaraan.find(k => k.nopol.toLowerCase() === nopol.toLowerCase());
-          if (matchedKendaraan) kendaraanId = matchedKendaraan.id;
-        } else if (jenisKendaraan && jenisKendaraan !== "-") {
-          const matchedKendaraan = allKendaraan.find(k => k.jenis.toLowerCase() === jenisKendaraan.toLowerCase());
-          if (matchedKendaraan) kendaraanId = matchedKendaraan.id;
+        const validNopol = nopol && nopol !== "-" ? nopol : null;
+        const validJenis = jenisKendaraan && jenisKendaraan !== "-" ? jenisKendaraan : null;
+
+        if (validNopol || validJenis) {
+          let matchedKendaraan = null;
+          if (validNopol) {
+            matchedKendaraan = allKendaraan.find(k => k.nopol.toLowerCase() === validNopol.toLowerCase());
+          }
+          if (!matchedKendaraan && validJenis) {
+            matchedKendaraan = allKendaraan.find(k => k.jenis.toLowerCase() === validJenis.toLowerCase());
+          }
+
+          if (matchedKendaraan) {
+            kendaraanId = matchedKendaraan.id;
+          } else {
+            // Auto create missing kendaraan
+            const newKendaraan = await prisma.kendaraan.create({
+              data: {
+                jenis: validJenis || "Tanpa Keterangan",
+                nopol: validNopol || `TBA-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+              }
+            });
+            allKendaraan.push(newKendaraan);
+            kendaraanId = newKendaraan.id;
+          }
         }
 
         let noForm = noFormExcel;
