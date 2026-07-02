@@ -42,7 +42,7 @@ export type CreateRequestData = {
   tujuan: string;
   tglMulai: Date;
   tglSelesai: Date;
-  buktiFileUrl: string;
+  buktiFileUrl?: string;
 };
 
 export async function createNewRequest(data: CreateRequestData) {
@@ -84,6 +84,7 @@ export async function getAllRequests(search?: string, status?: RequestStatus) {
     include: {
       driver: true,
       kendaraan: true,
+      history: true
     },
     orderBy: {
       createdAt: 'desc'
@@ -119,7 +120,7 @@ export async function getRequestByNoForm(noForm: string) {
   });
 }
 
-export async function assignRequest(id: number, staffId: number, driverId: number, kendaraanId: number) {
+export async function assignRequest(id: number, staffId: number, driverId: number, kendaraanId: number, catatan?: string) {
   return await prisma.$transaction(async (tx) => {
     const req = await tx.request.update({
       where: { id },
@@ -131,7 +132,7 @@ export async function assignRequest(id: number, staffId: number, driverId: numbe
           create: {
             status: RequestStatus.granted,
             staffId,
-            catatan: "Driver dan kendaraan di-assign"
+            catatan: catatan ? catatan : "Driver dan kendaraan di-assign"
           }
         }
       }
@@ -195,5 +196,11 @@ export async function cancelRequest(id: number, alasanCancel: string) {
       }
     });
     return req;
+  });
+}
+
+export async function deleteRequest(id: number) {
+  return await prisma.request.delete({
+    where: { id }
   });
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createNewRequest, getAllRequests } from "@/lib/requests";
+import { createNewRequest, getAllRequests, getRequestByNoForm } from "@/lib/requests";
 import { z } from "zod";
 import { writeFile } from "fs/promises";
 import path from "path";
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     const validation = createRequestSchema.safeParse(data);
     if (!validation.success) {
-      return NextResponse.json({ error: validation.error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
     }
 
     // Save the file
@@ -62,11 +62,18 @@ export async function POST(req: NextRequest) {
   }
 }
 
+
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
     const search = searchParams.get("search") || undefined;
+    const tracking = searchParams.get("tracking") === "true";
     const status = searchParams.get("status") as RequestStatus | undefined;
+
+    if (tracking && search) {
+      const request = await getRequestByNoForm(search);
+      return NextResponse.json({ success: true, data: request ? [request] : [] });
+    }
 
     const requests = await getAllRequests(search, status);
     return NextResponse.json({ success: true, data: requests });
