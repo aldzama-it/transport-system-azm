@@ -84,10 +84,41 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const getStatusWeight = (statusStr: string) => {
+      const s = statusMap[statusStr.trim().toLowerCase()] || RequestStatus.pending;
+      if (s === RequestStatus.pending) return 1;
+      if (s === RequestStatus.granted) return 2;
+      return 3; // done, cancelled, deny
+    };
+
+    const deduplicatedData = new Map<string, any>();
+    const rowsWithoutNoForm: any[] = [];
+
+    for (const row of rawData) {
+      const noFormExcel = (row["No Form"] || "").toString().trim();
+      if (!noFormExcel) {
+        rowsWithoutNoForm.push(row);
+      } else {
+        if (!deduplicatedData.has(noFormExcel)) {
+          deduplicatedData.set(noFormExcel, row);
+        } else {
+          const existingRow = deduplicatedData.get(noFormExcel);
+          const existingStatus = (existingRow["Status"] || "").toString();
+          const currentStatus = (row["Status"] || "").toString();
+          // If weight is higher, or if weight is equal but we want to take the latest log
+          if (getStatusWeight(currentStatus) >= getStatusWeight(existingStatus)) {
+            deduplicatedData.set(noFormExcel, row);
+          }
+        }
+      }
+    }
+
+    const finalDataToProcess = [...Array.from(deduplicatedData.values()), ...rowsWithoutNoForm];
+
     let successCount = 0;
     let failedCount = 0;
     
-    for (const row of rawData) {
+    for (const row of finalDataToProcess) {
       try {
         const noFormExcel = (row["No Form"] || "").toString().trim();
         const namaPemohon = (row["Pemohon"] || "").toString().trim();
@@ -116,8 +147,8 @@ export async function POST(req: NextRequest) {
           continue; 
         }
 
-        const tglMulai = parseDate(tglMulaiStr) || new Date();
-        const tglSelesai = parseDate(tglSelesaiStr) || new Date();
+        const tglMulai = parseDate(tglMulaiStr);
+        const tglSelesai = parseDate(tglSelesaiStr);
         
         let status = statusMap[statusStr] || RequestStatus.done; // Default to done
 
