@@ -13,7 +13,7 @@ export default async function AssetsPage() {
   }
 
   // Hanya koordinator dan admin yang bisa mengakses penuh halaman ini
-  const role = session.user?.role as string;
+  const role = session.user.role;
   if (role !== "koordinator" && role !== "admin") {
     redirect("/dashboard");
   }
