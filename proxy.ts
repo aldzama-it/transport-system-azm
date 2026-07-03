@@ -2,7 +2,7 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 export default withAuth(
-  function middleware(req) {
+  function proxy(req) {
     const token = req.nextauth.token;
     const isAuth = !!token;
     const isAuthPage = req.nextUrl.pathname.startsWith("/login");
@@ -33,7 +33,7 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: () => true, // Let the middleware function handle the logic
+      authorized: () => true, // Let the proxy function handle the logic
     },
   }
 );
