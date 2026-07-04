@@ -38,7 +38,12 @@ export async function GET(request: Request) {
 
     // Dashcam API menggunakan car_name. Contoh: "HILUX W8372ED" atau "S58"
     const vehicle = data.vehicles.find((v: any) => {
-      const normalizedCarName = v.car_name.replace(/\s+/g, '').toLowerCase();
+      let normalizedCarName = v.car_name.replace(/\s+/g, '').toLowerCase();
+      // Patch typo dari sistem dashcam
+      if (normalizedCarName.includes('w7306ag')) {
+        normalizedCarName = normalizedCarName.replace('w7306ag', 'w7036ag');
+      }
+      
       // Bisa jadi nopol ada di dalam car_name (contoh W8372ED ada di HILUXW8372ED)
       // Atau car_name persis sama dengan nopol
       return normalizedCarName.includes(normalizedNopol) || normalizedNopol.includes(normalizedCarName);

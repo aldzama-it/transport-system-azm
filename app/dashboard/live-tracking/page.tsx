@@ -45,7 +45,11 @@ export default function FleetTrackingPage() {
       // 3. Match the data
       if (dataDashcam.ok && dataDashcam.vehicles) {
         const matchedVehicles = dataDashcam.vehicles.map((v: any) => {
-          const normCarName = normalizeText(v.car_name);
+          let normCarName = normalizeText(v.car_name);
+          // Patch typo dari sistem dashcam
+          if (normCarName.includes('W7306AG')) {
+            normCarName = normCarName.replace('W7306AG', 'W7036AG');
+          }
           
           const matchedDb = dbKendaraan.find((dbCar: any) => {
             const normNopol = normalizeText(dbCar.nopol);
