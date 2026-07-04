@@ -15,14 +15,14 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { jenis, nopol } = body;
+    const { jenis, nopol, project, lokasi } = body;
     
     if (!jenis || !nopol) {
       return NextResponse.json({ error: "Jenis dan Nopol wajib diisi" }, { status: 400 });
     }
 
     const kendaraan = await prisma.kendaraan.create({
-      data: { jenis, nopol }
+      data: { jenis, nopol, project, lokasi }
     });
 
     return NextResponse.json({ success: true, data: kendaraan }, { status: 201 });

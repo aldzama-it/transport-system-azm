@@ -30,6 +30,8 @@ export default function AssetsClient() {
   const [isAddKendaraanOpen, setIsAddKendaraanOpen] = useState(false);
   const [newKendaraanJenis, setNewKendaraanJenis] = useState("");
   const [newKendaraanNopol, setNewKendaraanNopol] = useState("");
+  const [newKendaraanProject, setNewKendaraanProject] = useState("");
+  const [newKendaraanLokasi, setNewKendaraanLokasi] = useState("");
   const [isAddingKendaraan, setIsAddingKendaraan] = useState(false);
 
   // Search, Sort, Filter state
@@ -121,7 +123,7 @@ export default function AssetsClient() {
       const res = await fetch("/api/kendaraan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jenis: newKendaraanJenis, nopol: newKendaraanNopol }),
+        body: JSON.stringify({ jenis: newKendaraanJenis, nopol: newKendaraanNopol, project: newKendaraanProject, lokasi: newKendaraanLokasi }),
       });
       const data = await res.json();
       if (data.success) {
@@ -129,6 +131,8 @@ export default function AssetsClient() {
         setIsAddKendaraanOpen(false);
         setNewKendaraanJenis("");
         setNewKendaraanNopol("");
+        setNewKendaraanProject("");
+        setNewKendaraanLokasi("");
         fetchData();
       } else {
         toast.error(data.error || "Gagal menambah kendaraan");
@@ -171,7 +175,7 @@ export default function AssetsClient() {
       const res = await fetch(`/api/kendaraan/${editKendaraan.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jenis: editKendaraan.jenis, nopol: editKendaraan.nopol, status: editKendaraan.status }),
+        body: JSON.stringify({ jenis: editKendaraan.jenis, nopol: editKendaraan.nopol, status: editKendaraan.status, project: editKendaraan.project, lokasi: editKendaraan.lokasi }),
       });
       const data = await res.json();
       if (data.success) {
@@ -590,13 +594,15 @@ export default function AssetsClient() {
                       <tr className="bg-slate-50 border-b border-slate-200">
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Jenis Kendaraan</th>
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Nomor Polisi</th>
+                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Project</th>
+                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Lokasi</th>
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {currentKendaraan.length === 0 ? (
-                        <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500 font-medium">Data kendaraan tidak ditemukan.</td></tr>
+                        <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500 font-medium">Data kendaraan tidak ditemukan.</td></tr>
                       ) : currentKendaraan.map(k => (
                         <tr key={k.id} className={`hover:bg-slate-50/50 transition-colors ${k.status === 'tidak tersedia' ? 'opacity-60' : ''}`}>
                           <td className="px-6 py-4 font-bold text-slate-800 flex items-center gap-3">
@@ -606,6 +612,8 @@ export default function AssetsClient() {
                             {k.jenis}
                           </td>
                           <td className="px-6 py-4 text-slate-600 font-medium tracking-wider">{k.nopol}</td>
+                          <td className="px-6 py-4 text-slate-600 font-medium">{k.project || "-"}</td>
+                          <td className="px-6 py-4 text-slate-600 font-medium">{k.lokasi || "-"}</td>
                           <td className="px-6 py-4">
                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${k.status === 'tersedia' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
                               {k.status}
@@ -702,6 +710,14 @@ export default function AssetsClient() {
                   <label className="block text-sm font-medium text-slate-700 mb-2">Nomor Polisi (Plat)</label>
                   <input type="text" required value={newKendaraanNopol} onChange={e => setNewKendaraanNopol(e.target.value.toUpperCase())} placeholder="Contoh: B 1234 ABC" className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50" />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Project <span className="text-slate-400 font-normal text-xs">(Opsional)</span></label>
+                  <input type="text" value={newKendaraanProject} onChange={e => setNewKendaraanProject(e.target.value)} placeholder="Contoh: Proyek A" className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Lokasi <span className="text-slate-400 font-normal text-xs">(Opsional)</span></label>
+                  <input type="text" value={newKendaraanLokasi} onChange={e => setNewKendaraanLokasi(e.target.value)} placeholder="Contoh: Jakarta" className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50" />
+                </div>
               </div>
               <div className="flex justify-end gap-3">
                 <button type="button" onClick={() => setIsAddKendaraanOpen(false)} className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-full transition-colors">Batal</button>
@@ -762,6 +778,14 @@ export default function AssetsClient() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Nomor Polisi (Plat)</label>
                   <input type="text" required value={editKendaraan.nopol} onChange={e => setEditKendaraan({...editKendaraan, nopol: e.target.value.toUpperCase()})} className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Project <span className="text-slate-400 font-normal text-xs">(Opsional)</span></label>
+                  <input type="text" value={editKendaraan.project || ''} onChange={e => setEditKendaraan({...editKendaraan, project: e.target.value})} className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Lokasi <span className="text-slate-400 font-normal text-xs">(Opsional)</span></label>
+                  <input type="text" value={editKendaraan.lokasi || ''} onChange={e => setEditKendaraan({...editKendaraan, lokasi: e.target.value})} className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>

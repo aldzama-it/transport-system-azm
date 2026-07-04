@@ -5,7 +5,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   try {
     const id = parseInt(params.id);
     const body = await req.json();
-    const { jenis, nopol, status } = body;
+    const { jenis, nopol, status, project, lokasi } = body;
     
     if (!jenis || !nopol) {
       return NextResponse.json({ error: "Jenis dan Nopol wajib diisi" }, { status: 400 });
@@ -13,7 +13,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     const kendaraan = await prisma.kendaraan.update({
       where: { id },
-      data: { jenis, nopol, status }
+      data: { jenis, nopol, status, project, lokasi }
     });
 
     return NextResponse.json({ success: true, data: kendaraan });
