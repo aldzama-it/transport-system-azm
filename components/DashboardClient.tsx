@@ -3,13 +3,16 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { 
-  Search, FileText, Calendar, Building, MapPin, 
-  Car, UserCircle, AlertCircle, CheckCircle2, 
+import {
+  Search, FileText, Calendar, Building, MapPin,
+  Car, UserCircle, AlertCircle, CheckCircle2,
   Clock, Ban, Filter, Check, X, LayoutGrid, List, ChevronDown, Download, Plus, Upload, Eye, Trash2, CheckSquare
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
+import dynamic from 'next/dynamic';
+
+const DynamicMap = dynamic(() => import('./TrackingMap'), { ssr: false, loading: () => <div className="absolute inset-0 flex items-center justify-center text-slate-400 bg-slate-50"><span className="animate-pulse">Memuat peta...</span></div> });
 
 const statusConfig: Record<string, { color: string, icon: any, label: string }> = {
   pending: { color: "bg-amber-100 text-amber-700 border-amber-200", icon: Clock, label: "Pending" },
@@ -35,7 +38,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   const [requests, setRequests] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [kendaraan, setKendaraan] = useState<any[]>([]);
-  
+
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterDivisi, setFilterDivisi] = useState<string>("all");
   const [filterKendaraan, setFilterKendaraan] = useState<string>("all");
@@ -55,7 +58,10 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
 
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
   const [actionModal, setActionModal] = useState<"assign" | "deny" | "done" | "delete" | null>(null);
-  
+  const [liveLocation, setLiveLocation] = useState<{ latitude: number, longitude: number, speed: string, lastUpdated: string } | null>(null);
+  const [isTrackingLoading, setIsTrackingLoading] = useState(false);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
+
   const [selectedDriver, setSelectedDriver] = useState("");
   const [selectedKendaraan, setSelectedKendaraan] = useState("");
   const [assignCatatan, setAssignCatatan] = useState("");
@@ -75,7 +81,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
       const reqData = await reqRes.json();
       const drvData = await drvRes.json();
       const kenData = await kenRes.json();
-      
+
       if (reqData.success) setRequests(reqData.data);
       if (drvData.success) setDrivers(drvData.data);
       if (kenData.success) setKendaraan(kenData.data);
@@ -88,8 +94,39 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
 
   useEffect(() => {
     fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus]);
+
+  useEffect(() => {
+    if (selectedRequest && (selectedRequest.status === 'granted' || selectedRequest.status === 'done') && selectedRequest.kendaraan) {
+      const fetchLocation = async () => {
+        setIsTrackingLoading(true);
+        setTrackingError(null);
+        try {
+          const res = await fetch(`/api/tracking?nopol=${encodeURIComponent(selectedRequest.kendaraan.nopol)}`);
+          const data = await res.json();
+          if (data.success) {
+            setLiveLocation(data.data);
+          } else {
+            setTrackingError(data.message || 'Gagal melacak kendaraan');
+            setLiveLocation(null);
+          }
+        } catch (error) {
+          setTrackingError('Terjadi kesalahan jaringan');
+          setLiveLocation(null);
+        } finally {
+          setIsTrackingLoading(false);
+        }
+      };
+
+      fetchLocation();
+      const interval = setInterval(fetchLocation, 10000); // Auto refresh every 10 seconds
+      return () => clearInterval(interval);
+    } else {
+      setLiveLocation(null);
+      setTrackingError(null);
+    }
+  }, [selectedRequest]);
 
   let processedRequests = [...requests];
 
@@ -97,7 +134,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
     const q = search.toLowerCase();
     processedRequests = processedRequests.filter(r => r.noForm.toLowerCase().includes(q) || r.namaPemohon.toLowerCase().includes(q));
   }
-  
+
   if (filterDivisi !== "all") {
     processedRequests = processedRequests.filter(r => r.divisi === filterDivisi);
   }
@@ -123,7 +160,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
     from.setHours(0, 0, 0, 0);
     processedRequests = processedRequests.filter(r => new Date(r.tglMulai) >= from);
   }
-  
+
   if (dateTo) {
     const to = new Date(dateTo);
     to.setHours(23, 59, 59, 999);
@@ -142,7 +179,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
       const dateB = new Date(b.createdAt).getTime();
       return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     } else {
-      return sortOrder === "desc" 
+      return sortOrder === "desc"
         ? b.noForm.localeCompare(a.noForm)
         : a.noForm.localeCompare(b.noForm);
     }
@@ -178,7 +215,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
         headers: { "Content-Type": "application/json" },
         body: actionModal !== 'delete' && Object.keys(body).length > 0 ? JSON.stringify(body) : undefined
       });
-      
+
       const data = await res.json();
       if (data.success) {
         toast.success("Tindakan berhasil disimpan");
@@ -239,7 +276,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
         body: formData,
       });
       const data = await res.json();
-      
+
       if (data.success) {
         toast.success(data.message);
         fetchData(); // Refresh data
@@ -268,16 +305,23 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
           <h1 className="text-3xl font-black text-slate-900">{readOnly ? "Monitoring" : "Dashboard"}</h1>
           <p className="text-slate-500">Kelola permintaan kendaraan operasional.</p>
         </div>
-        
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 flex-wrap">
           {!readOnly && (
             <>
+              <button
+                onClick={() => router.push('/dashboard/live-tracking')}
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              >
+                <MapPin className="w-4 h-4" />
+                Live Tracking
+              </button>
               <button
                 onClick={() => router.push('/dashboard/assets')}
                 className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
               >
                 <Calendar className="w-4 h-4" />
-                Cek Driver & Kendaraan
+                Data Kendaraan
               </button>
               <div className="relative">
                 <button
@@ -293,7 +337,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden font-normal text-slate-700">
-                      <button 
+                      <button
                         type="button"
                         onClick={() => {
                           setOpenDropdown(null);
@@ -304,7 +348,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                         <Upload className="w-4 h-4 text-purple-600" />
                         <span className="font-semibold text-slate-700">Import dari Excel</span>
                       </button>
-                      <button 
+                      <button
                         type="button"
                         onClick={() => {
                           setOpenDropdown(null);
@@ -319,12 +363,12 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   </>
                 )}
               </div>
-              <input 
-                type="file" 
-                accept=".xlsx" 
-                className="hidden" 
-                ref={fileInputRef} 
-                onChange={handleImport} 
+              <input
+                type="file"
+                accept=".xlsx"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleImport}
               />
             </>
           )}
@@ -425,17 +469,17 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
         <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto flex-wrap">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Cari form / nama..." 
+            <input
+              type="text"
+              placeholder="Cari form / nama..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 w-full border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm bg-slate-50"
             />
           </div>
-          
+
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <input 
+            <input
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
@@ -443,7 +487,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               title="Tanggal Mulai (Dari)"
             />
             <span className="text-slate-400 text-sm">-</span>
-            <input 
+            <input
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
@@ -451,7 +495,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               title="Tanggal Mulai (Sampai)"
             />
           </div>
-          
+
         </div>
       </div>
 
@@ -467,7 +511,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               <thead>
                 <tr className="bg-indigo-600 border-b border-indigo-700 text-sm font-semibold text-white uppercase tracking-wider">
                   <th className="p-5 pl-6 align-middle">
-                    <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if(sortField === 'noForm') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('noForm'); setSortOrder('desc'); } }}>
+                    <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if (sortField === 'noForm') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('noForm'); setSortOrder('desc'); } }}>
                       <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">No Form</span>
                       {sortField === 'noForm' ? (
                         <span className="text-indigo-200 bg-indigo-900/50 rounded-md px-1.5 py-0.5 text-xs group-hover:bg-indigo-800 group-hover:text-white transition-colors font-bold">
@@ -481,7 +525,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                     </div>
                   </th>
                   <th className="p-5 align-middle">
-                    <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if(sortField === 'createdAt') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('createdAt'); setSortOrder('desc'); } }}>
+                    <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if (sortField === 'createdAt') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('createdAt'); setSortOrder('desc'); } }}>
                       <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">Waktu Pengajuan</span>
                       {sortField === 'createdAt' ? (
                         <span className="text-indigo-200 bg-indigo-900/50 rounded-md px-1.5 py-0.5 text-xs group-hover:bg-indigo-800 group-hover:text-white transition-colors font-bold">
@@ -517,7 +561,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                     </div>
                   </th>
                   <th className="p-5 align-middle">
-                    <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if(sortField === 'tglMulai') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('tglMulai'); setSortOrder('desc'); } }}>
+                    <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if (sortField === 'tglMulai') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('tglMulai'); setSortOrder('desc'); } }}>
                       <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">Jadwal</span>
                       {sortField === 'tglMulai' ? (
                         <span className="text-indigo-200 bg-indigo-900/50 rounded-md px-1.5 py-0.5 text-xs group-hover:bg-indigo-800 group-hover:text-white transition-colors font-bold">
@@ -637,8 +681,8 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                       </td>
                       <td className="p-5">
                         {req.buktiFileUrl ? (
-                          <button 
-                            onClick={() => setBuktiModal(req.buktiFileUrl)} 
+                          <button
+                            onClick={() => setBuktiModal(req.buktiFileUrl)}
                             className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 text-sm font-medium focus:outline-none"
                           >
                             <FileText className="w-4 h-4" /> Lihat
@@ -692,7 +736,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                         </div>
                       </td>
                       <td className="p-5 pr-6 text-right space-x-2 min-w-[200px]">
-                        <button 
+                        <button
                           title="Detail"
                           onClick={async () => {
                             const res = await fetch(`/api/requests/${req.id}`);
@@ -703,17 +747,17 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        
+
                         {!readOnly && req.status === 'pending' && (
                           <>
-                            <button 
+                            <button
                               title="Setujui"
                               onClick={() => { setSelectedRequest(req); setActionModal('assign'); }}
-                              className="p-2 bg-indigo-50 text-indigo-600 font-semibold border border-indigo-200 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
+                              className="p-2 bg-green-50 text-green-600 font-semibold border border-green-200 rounded-lg hover:bg-green-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
                             >
                               <Check className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               title="Tolak"
                               onClick={() => { setSelectedRequest(req); setActionModal('deny'); }}
                               className="p-2 bg-red-50 text-red-600 font-semibold border border-red-200 rounded-lg hover:bg-red-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
@@ -723,7 +767,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                           </>
                         )}
                         {!readOnly && req.status === 'granted' && (
-                          <button 
+                          <button
                             title="Selesai"
                             onClick={() => { setSelectedRequest(req); setActionModal('done'); }}
                             className="p-2 bg-green-50 text-green-600 font-semibold border border-green-200 rounded-lg hover:bg-green-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
@@ -732,7 +776,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                           </button>
                         )}
                         {!readOnly && (
-                          <button 
+                          <button
                             title="Hapus"
                             onClick={() => { setSelectedRequest(req); setActionModal('delete'); }}
                             className="p-2 bg-slate-50 text-red-600 font-semibold border border-slate-200 rounded-lg hover:bg-red-100 transition-colors shadow-sm inline-flex items-center justify-center"
@@ -747,14 +791,14 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               </tbody>
             </table>
           </div>
-          
+
           {totalPages > 1 && (
             <div className="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-between">
               <span className="text-sm text-slate-500">
                 Menampilkan <span className="font-semibold text-slate-700">{((currentPage - 1) * ITEMS_PER_PAGE) + 1}</span> - <span className="font-semibold text-slate-700">{Math.min(currentPage * ITEMS_PER_PAGE, processedRequests.length)}</span> dari <span className="font-semibold text-slate-700">{processedRequests.length}</span> data
               </span>
               <div className="flex gap-2">
-                <button 
+                <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                   className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
@@ -772,7 +816,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                     </button>
                   ))}
                 </div>
-                <button 
+                <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                   className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
@@ -796,14 +840,14 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 </span>
                 <h2 className="text-2xl font-black text-slate-900">{selectedRequest.noForm}</h2>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedRequest(null)}
                 className="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
-            
+
             <div className="p-6 flex-grow space-y-8">
               {/* Detail content similar to tracking page but stacked */}
               <div>
@@ -821,9 +865,9 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                     {formatDateTime(selectedRequest.tglMulai)} <span className="text-slate-400 font-normal mx-2">s/d</span> {formatDateTime(selectedRequest.tglSelesai)}
                   </p>
                   <p className="text-slate-700">{selectedRequest.tujuan}</p>
-                  <a 
-                    href={selectedRequest.buktiFileUrl} 
-                    target="_blank" 
+                  <a
+                    href={selectedRequest.buktiFileUrl}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-800"
                   >
@@ -845,6 +889,28 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                       <p className="font-bold text-slate-900 mt-1">{selectedRequest.kendaraan?.jenis}</p>
                       <p className="text-xs font-medium text-slate-600 mt-1">{selectedRequest.kendaraan?.nopol}</p>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {(selectedRequest.status === 'granted' || selectedRequest.status === 'done') && (
+                <div>
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center justify-between">
+                    <span>Live Tracking Position</span>
+                    {isTrackingLoading && <span className="text-xs font-normal text-slate-400 flex items-center"><Clock className="w-3 h-3 mr-1 animate-spin" /> Mengambil lokasi...</span>}
+                    {liveLocation && <span className="text-xs font-normal text-green-600 flex items-center"><CheckCircle2 className="w-3 h-3 mr-1" /> Realtime - {liveLocation.speed}</span>}
+                  </h3>
+                  <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 min-h-[300px] h-[300px] relative overflow-hidden">
+                    {trackingError ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 p-6 text-center z-10 bg-slate-50">
+                        <AlertCircle className="w-12 h-12 mb-3 opacity-20 text-red-500" />
+                        <p className="font-semibold text-red-500">{trackingError}</p>
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 z-0">
+                        <DynamicMap location={liveLocation ? { lat: liveLocation.latitude, lng: liveLocation.longitude } : null} />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -882,7 +948,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
             <h3 className="text-xl font-bold text-slate-900 mb-4">
               {actionModal === 'assign' ? 'Setujui & Tugaskan' : actionModal === 'deny' ? 'Tolak Permintaan' : 'Tandai Selesai'}
             </h3>
-            
+
             <form onSubmit={handleAction}>
               {actionModal === 'assign' && (
                 <div className="space-y-4 mb-6">
@@ -901,8 +967,8 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                         placeholder="Ketik atau pilih driver..."
                         className="w-full px-4 py-3 pr-10 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-slate-900"
                       />
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => setOpenDropdown(openDropdown === 'action-driver' ? null : 'action-driver')}
                         className="absolute inset-y-0 right-0 pr-3 flex items-center z-10 focus:outline-none"
                       >
@@ -913,10 +979,10 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                           <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
                           <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-y-auto overflow-x-hidden max-h-[380px] overscroll-contain font-normal text-slate-700">
                             {drivers.filter(d => d.nama.toLowerCase().includes(selectedDriver.toLowerCase())).map(d => (
-                              <button 
+                              <button
                                 key={d.id}
                                 type="button"
-                                onClick={() => { setSelectedDriver(d.nama); setOpenDropdown(null); }} 
+                                onClick={() => { setSelectedDriver(d.nama); setOpenDropdown(null); }}
                                 className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${selectedDriver === d.nama ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}
                               >
                                 {d.nama}
@@ -958,18 +1024,18 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
                           <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-y-auto overflow-x-hidden max-h-[380px] overscroll-contain font-normal text-slate-700">
-                            <button 
+                            <button
                               type="button"
-                              onClick={() => { setSelectedKendaraan(""); setOpenDropdown(null); }} 
+                              onClick={() => { setSelectedKendaraan(""); setOpenDropdown(null); }}
                               className="w-full text-left px-4 py-3 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors border-b border-slate-100 text-slate-500"
                             >
                               -- Pilih Kendaraan --
                             </button>
                             {kendaraan.map(k => (
-                              <button 
+                              <button
                                 key={k.id}
                                 type="button"
-                                onClick={() => { setSelectedKendaraan(k.id.toString()); setOpenDropdown(null); }} 
+                                onClick={() => { setSelectedKendaraan(k.id.toString()); setOpenDropdown(null); }}
                                 className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${selectedKendaraan === k.id.toString() ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}
                               >
                                 {k.jenis} - {k.nopol}
@@ -978,7 +1044,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                           </div>
                         </>
                       )}
-                      <input type="text" required value={selectedKendaraan} onChange={() => {}} className="opacity-0 absolute inset-0 -z-10 w-full h-full pointer-events-none" />
+                      <input type="text" required value={selectedKendaraan} onChange={() => { }} className="opacity-0 absolute inset-0 -z-10 w-full h-full pointer-events-none" />
                     </div>
                   </div>
                   <div>
@@ -1006,7 +1072,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   />
                 </div>
               )}
-              
+
               {actionModal === 'done' && (
                 <p className="text-slate-600 mb-6">Apakah Anda yakin menandai permintaan ini sebagai selesai?</p>
               )}
@@ -1022,11 +1088,10 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className={`px-6 py-2 text-white font-bold rounded-full transition-colors disabled:opacity-50 ${
-                    actionModal === 'deny' ? 'bg-red-600 hover:bg-red-700' : 
-                    actionModal === 'done' ? 'bg-green-600 hover:bg-green-700' :
-                    'bg-indigo-600 hover:bg-indigo-700'
-                  }`}
+                  className={`px-6 py-2 text-white font-bold rounded-full transition-colors disabled:opacity-50 ${actionModal === 'deny' ? 'bg-red-600 hover:bg-red-700' :
+                      actionModal === 'done' ? 'bg-green-600 hover:bg-green-700' :
+                        'bg-indigo-600 hover:bg-indigo-700'
+                    }`}
                 >
                   {isProcessing ? "Menyimpan..." : actionModal === 'assign' ? 'Setujui' : actionModal === 'deny' ? 'Tolak' : 'Selesai'}
                 </button>
@@ -1048,18 +1113,18 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
             </div>
             <div className="p-6">
               <p className="text-slate-600 mb-6 leading-relaxed">
-                Apakah Anda yakin ingin menghapus form <span className="font-bold text-slate-800">{selectedRequest.noForm}</span> atas nama <span className="font-bold text-slate-800">{selectedRequest.namaPemohon}</span>? 
-                <br/><br/>
+                Apakah Anda yakin ingin menghapus form <span className="font-bold text-slate-800">{selectedRequest.noForm}</span> atas nama <span className="font-bold text-slate-800">{selectedRequest.namaPemohon}</span>?
+                <br /><br />
                 <span className="text-red-600 font-semibold text-sm">Tindakan ini tidak dapat dibatalkan dan seluruh riwayat akan dihapus.</span>
               </p>
               <div className="flex gap-3 justify-end">
-                <button 
+                <button
                   onClick={() => setActionModal(null)}
                   className="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-50 rounded-xl transition-colors"
                 >
                   Batal
                 </button>
-                <button 
+                <button
                   onClick={handleAction}
                   disabled={isProcessing}
                   className="px-4 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
@@ -1093,15 +1158,15 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
             <div className="flex-1 bg-slate-100/50 overflow-hidden relative flex items-center justify-center p-6">
               {buktiModal.match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i) || buktiModal.startsWith("data:image/") ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img 
-                  src={buktiModal} 
+                <img
+                  src={buktiModal}
                   alt="Bukti File"
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-sm bg-white" 
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-sm bg-white"
                 />
               ) : (
-                <iframe 
-                  src={buktiModal} 
-                  className="w-full h-full border-0 bg-white rounded-lg shadow-sm" 
+                <iframe
+                  src={buktiModal}
+                  className="w-full h-full border-0 bg-white rounded-lg shadow-sm"
                   title="Bukti File"
                 />
               )}
