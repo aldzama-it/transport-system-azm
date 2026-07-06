@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { Car, RefreshCw, Signal, Map as MapIcon, Database } from "lucide-react";
+import { Car, RefreshCw, Signal, Map as MapIcon, Database, ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import type { DashcamVehicle } from "@/components/FleetMap";
 
 // Map must be dynamically imported to avoid SSR issues with window object
@@ -22,6 +23,7 @@ export default function FleetTrackingPage() {
   const [vehicles, setVehicles] = useState<DashcamVehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<string>("");
+  const [selectedVehicleSN, setSelectedVehicleSN] = useState<string | null>(null);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -91,6 +93,9 @@ export default function FleetTrackingPage() {
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
         <div>
+          <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-indigo-600 mb-4 transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard
+          </Link>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
             <Car className="w-8 h-8 text-indigo-600" />
             Live Fleet Tracking
@@ -154,7 +159,7 @@ export default function FleetTrackingPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden mb-8 p-1">
-        <FleetMap vehicles={vehicles} />
+        <FleetMap vehicles={vehicles} selectedVehicleSN={selectedVehicleSN} />
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -174,7 +179,11 @@ export default function FleetTrackingPage() {
             </thead>
             <tbody>
               {vehicles.map((v, idx) => (
-                <tr key={v.device_sn || idx} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                <tr 
+                  key={v.device_sn || idx} 
+                  onClick={() => setSelectedVehicleSN(v.device_sn)}
+                  className={`border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer ${selectedVehicleSN === v.device_sn ? 'bg-indigo-50' : ''}`}
+                >
                   <td className="px-6 py-4">
                     <p className="font-bold text-slate-900">{v.car_name}</p>
                     <p className="text-xs text-slate-400 font-mono mt-1">SN: {v.device_sn}</p>
