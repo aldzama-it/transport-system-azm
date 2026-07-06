@@ -14,8 +14,9 @@ datasource db {
 }
 
 enum Role {
-  koordinator
-  staff
+  admin
+  koor_transport
+  staff_transport
 }
 
 enum RequestStatus {
@@ -31,7 +32,7 @@ model StaffAkun {
   nama         String
   email        String   @unique
   passwordHash String
-  role         Role     @default(staff)
+  role         Role     @default(staff_transport)
   createdAt    DateTime @default(now())
   histories    RequestHistory[]
 }
