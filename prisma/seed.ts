@@ -54,7 +54,24 @@ const kendaraanList = [
 async function main() {
   console.log('Start seeding...')
 
-  // Delete all existing drivers and kendaraan
+  await prisma.staffAkun.deleteMany({})
+  console.log('Deleted all existing staff accounts.')
+
+  // Insert default admin
+  const bcrypt = require('bcrypt')
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@transport.local'
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123'
+  const defaultPassword = await bcrypt.hash(adminPassword, 10)
+  const admin = await prisma.staffAkun.create({
+    data: {
+      nama: 'Administrator',
+      email: adminEmail,
+      passwordHash: defaultPassword,
+      role: 'admin'
+    }
+  })
+  console.log(`Created admin user: ${admin.email}`)
+
   await prisma.driver.deleteMany({})
   console.log('Deleted all existing drivers.')
 

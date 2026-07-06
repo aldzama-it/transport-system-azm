@@ -56,13 +56,23 @@ export default function UserMenu({ user }: UserMenuProps) {
           </div>
           <div className="py-2">
             <Link 
-              href={user.role === 'koordinator' ? "/dashboard" : "/monitoring"} 
+              href="/dashboard" 
               onClick={() => setIsOpen(false)}
               className="flex items-center px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
             >
               <LayoutDashboard className="w-4 h-4 mr-3 text-slate-400" />
               Dashboard
             </Link>
+            {user.role === 'admin' && (
+              <Link 
+                href="/dashboard/admin" 
+                onClick={() => setIsOpen(false)}
+                className="flex items-center px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+              >
+                <User className="w-4 h-4 mr-3 text-slate-400" />
+                Pengaturan Akun
+              </Link>
+            )}
           </div>
           <div className="py-2 border-t border-slate-100">
             <button

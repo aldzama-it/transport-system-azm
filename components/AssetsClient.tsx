@@ -7,7 +7,7 @@ import { id } from "date-fns/locale";
 import { Calendar as CalendarIcon, Car, UserCircle, ChevronLeft, ChevronRight, Plus, Trash2, ArrowLeft, Search, Filter, Pencil, X, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export default function AssetsClient() {
+export default function AssetsClient({ readOnly = false }: { readOnly?: boolean }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"jadwal" | "driver" | "kendaraan">("jadwal");
   const [isLoading, setIsLoading] = useState(true);
@@ -251,7 +251,7 @@ export default function AssetsClient() {
           <h1 className="text-3xl font-black text-slate-900">Driver & Kendaraan</h1>
           <p className="text-slate-500">Kelola jadwal pemakaian, data driver, dan armada operasional.</p>
         </div>
-        {activeTab === 'driver' && (
+        {!readOnly && activeTab === 'driver' && (
           <button
             onClick={() => setIsAddDriverOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
@@ -260,7 +260,7 @@ export default function AssetsClient() {
             Tambah Driver
           </button>
         )}
-        {activeTab === 'kendaraan' && (
+        {!readOnly && activeTab === 'kendaraan' && (
           <button
             onClick={() => setIsAddKendaraanOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
@@ -458,7 +458,7 @@ export default function AssetsClient() {
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Driver</th>
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">No. Telepon</th>
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                        {!readOnly && <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Aksi</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -478,22 +478,24 @@ export default function AssetsClient() {
                               {d.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex justify-end gap-2">
-                              <button 
-                                onClick={() => setEditDriver(d)}
-                                className="p-1.5 text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => { setDeleteId(d.id); setDeleteType('driver'); }}
-                                className="p-1.5 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
+                          {!readOnly && (
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex justify-end gap-2">
+                                <button 
+                                  onClick={() => setEditDriver(d)}
+                                  className="p-1.5 text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={() => { setDeleteId(d.id); setDeleteType('driver'); }}
+                                  className="p-1.5 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -597,7 +599,7 @@ export default function AssetsClient() {
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Project</th>
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Lokasi</th>
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                        {!readOnly && <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Aksi</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -619,22 +621,24 @@ export default function AssetsClient() {
                               {k.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex justify-end gap-2">
-                              <button 
-                                onClick={() => setEditKendaraan(k)}
-                                className="p-1.5 text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => { setDeleteId(k.id); setDeleteType('kendaraan'); }}
-                                className="p-1.5 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
+                          {!readOnly && (
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex justify-end gap-2">
+                                <button 
+                                  onClick={() => setEditKendaraan(k)}
+                                  className="p-1.5 text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={() => { setDeleteId(k.id); setDeleteType('kendaraan'); }}
+                                  className="p-1.5 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>

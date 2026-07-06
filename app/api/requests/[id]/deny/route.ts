@@ -6,7 +6,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || (session.user as any).role !== "koordinator") {
+    const userRole = (session.user as any).role;
+    if (!session || userRole === "staff_transport") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
