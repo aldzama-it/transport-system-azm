@@ -7,8 +7,7 @@ import { prisma } from "@/lib/prisma";
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    const userRole = (session.user as any).role;
-    if (!session || userRole === "staff_transport") {
+    if (!session || session.user.role === "staff_transport") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -40,7 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
-    const request = await assignRequest(id, parseInt((session.user as any).id, 10), finalDriverId, parseInt(kendaraanId, 10), catatan);
+    const request = await assignRequest(id, parseInt(session.user.id, 10), finalDriverId, parseInt(kendaraanId, 10), catatan);
     
     return NextResponse.json({ success: true, data: request });
   } catch (error: any) {

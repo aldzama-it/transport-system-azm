@@ -6,8 +6,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    const userRole = (session.user as any).role;
-    if (!session || userRole === "staff_transport") {
+    if (!session || session.user.role === "staff_transport") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -22,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Alasan tolak wajib diisi" }, { status: 400 });
     }
 
-    const request = await denyRequest(id, parseInt((session.user as any).id, 10), alasanDeny);
+    const request = await denyRequest(id, parseInt(session.user.id, 10), alasanDeny);
     
     return NextResponse.json({ success: true, data: request });
   } catch (error: any) {
