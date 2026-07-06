@@ -10,45 +10,46 @@ const drivers = [
   'M. Qowiy Akbar', 'Husen Nugaraha', 'Aris Siswanto', 'Junaidi'
 ]
 
+
 const kendaraanList = [
-  { jenis: "TRAGA", nopol: "W 8016 DM" },
-  { jenis: "L 300", nopol: "W 8147 DZ" },
-  { jenis: "AVANZA", nopol: "W 1051 CB" },
-  { jenis: "INNOVA Silver Metalic", nopol: "W 1794 DM" },
-  { jenis: "DUMP TRUCK ADZ - 012", nopol: "W 8458 EA" },
-  { jenis: "TOYOTA INNOVA REBORN", nopol: "W 1243 DR" },
-  { jenis: "DOUBEL KABIN [ISUZU] DMAX", nopol: "L 9629 CI" },
-  { jenis: "MITSUBISHI EXPANDER", nopol: "-" },
-  { jenis: "BRIO", nopol: "W 1654 CE" },
-  { jenis: "TRUCK TRONTON [TMC]", nopol: "W 8660 EA" },
-  { jenis: "ISUZU LONG GIGA", nopol: "W 8035 ED" },
-  { jenis: "GRAN MAX", nopol: "W 1525 CD" },
-  { jenis: "TRAGA", nopol: "W 8324 DS" },
-  { jenis: "BUS", nopol: "W 7036 AG" },
-  { jenis: "RUSH", nopol: "W 1681 DF" },
-  { jenis: "ELF", nopol: "W 7058 AG" },
-  { jenis: "TRAGA FUEL", nopol: "W 8410 EA" },
-  { jenis: "LUXIO", nopol: "W1536 EH" },
-  { jenis: "TRUCK TRONTON VACUUM", nopol: "L 1905 AAN" },
-  { jenis: "TOYOTA HILUX DOUBEL KABIN", nopol: "W 8316 ED" },
-  { jenis: "Pajero Pribadi Pak AJ", nopol: "W 1337 DJ" },
-  { jenis: "TRUCK ELF ISUZU", nopol: "L 8105 A" },
-  { jenis: "GRANDMAX", nopol: "DD 1883 SC" },
-  { jenis: "GRANDMAX", nopol: "DD 1720 XAJ" },
-  { jenis: "TRAGA", nopol: "DP 8004 GK" },
-  { jenis: "AVANZA SOROAKO", nopol: "DP 1851 GH" },
-  { jenis: "DAIHATSU SIGRA", nopol: "DP 1337 GM" },
-  { jenis: "MITSUBISHI STRADA'", nopol: "L 8415 GD" },
-  { jenis: "INNOVA [TOYOTA] hitam", nopol: "W 1914 DL" },
-  { jenis: "DUMP TRUCK ADZ-024", nopol: "W 8085 ED" },
-  { jenis: "MITSHUBISHI EXPANDER", nopol: "W 1417 DR" },
-  { jenis: "TOYOTA HILUX DOUBEL KABIN", nopol: "W 8372 ED" },
-  { jenis: "TOYOTA HILUX DOUBEL KABIN LIME PACKAGE", nopol: "W 8381 ED" },
-  { jenis: "ELF NEW", nopol: "W 7108 AG" },
-  { jenis: "TOYOTA RANGGA", nopol: "W 8561 ED" },
-  { jenis: "TRUK TRONTON VAKUM [FAW]", nopol: "W 8328 ED" },
-  { jenis: "TRUCK HINO", nopol: "W 8572 ED" }
-]
+  { jenis: "TRAGA", nopol: "W8016DM", project: "ANTAM ELECTRODE CASING", lokasi: "SULAWESI" },
+  { jenis: "L 300", nopol: "W8147DZ", project: "HEAD OFFICE", lokasi: "GRESIK" },
+  { jenis: "AVANZA", nopol: "W1051CB", project: "CLEANING ALUMINA PLANT", lokasi: "KALIMANTAN" },
+  { jenis: "INNOVA Silver Metalic", nopol: "W1794DM", project: "HEAD OFFICE", lokasi: "GRESIK" },
+  { jenis: "DUMP TRUCK ADZ - 012", nopol: "W8458EA", project: "EXCAVATOR & DUMPTRUCK", lokasi: "GRESIK" },
+  { jenis: "TOYOTA INNOVA REBORN", nopol: "W1243DR", project: "HEAD OFFICE", lokasi: "GRESIK" },
+  { jenis: "DOUBEL KABIN [ISUZU] DMAX", nopol: "L9629CI", project: "HEAD OFFICE", lokasi: "GRESIK" },
+  { jenis: "BRIO", nopol: "W1654CE", project: "HEAD OFFICE", lokasi: "GRESIK" },
+  { jenis: "TRUCK TRONTON [TMC]", nopol: "W8660EA", project: "HEAD OFFICE", lokasi: "GRESIK" },
+  { jenis: "ISUZU LONG GIGA", nopol: "W8035ED", project: "HEAD OFFICE", lokasi: "GRESIK" },
+  { jenis: "GRAN MAX", nopol: "W1525CD", project: "HEAD OFFICE", lokasi: "GRESIK" },
+  { jenis: "TRAGA", nopol: "W8324DS", project: "SCAFFOLDING", lokasi: "GRESIK" },
+  { jenis: "BUS", nopol: "W7036AG", project: "HOT METAL", lokasi: "GRESIK" },
+  { jenis: "RUSH", nopol: "W1681DF", project: "HEAD OFFICE", lokasi: "GRESIK" },
+  { jenis: "ELF", nopol: "W7058AG", project: "REFRACTORY", lokasi: "GRESIK" },
+  { jenis: "TRAGA FUEL", nopol: "W8410EA", project: "EXCAVATOR DUMPTRUCK", lokasi: "GRESIK" },
+  { jenis: "LUXIO", nopol: "W1536EH", project: "SCAFFOLDING", lokasi: "GRESIK" },
+  { jenis: "TRUCK TRONTON VACUUM", nopol: "L1905AAN", project: "VACUUM TRUCK", lokasi: "GRESIK" },
+  { jenis: "TOYOTA HILUX DOUBEL KABIN", nopol: "W8316ED", project: "CMP", lokasi: "PLOT CMP" },
+  { jenis: "Pajero Pribadi Pak AJ", nopol: "W1337DJ", project: "Pak AJ", lokasi: "Gresik" },
+  { jenis: "TRUCK ELF ISUZU", nopol: "L8105A", project: "ANTAM", lokasi: "POMALA, SULAWESI" },
+  { jenis: "GRANDMAX", nopol: "DD1883SC", project: "ANTAM", lokasi: "POMALAA" },
+  { jenis: "GRANDMAX", nopol: "DD1720XAJ", project: "ANTAM", lokasi: "POMALAA, SULAWESI" },
+  { jenis: "TRAGA", nopol: "DP8004GK", project: "ANTAM", lokasi: "POMALAA" },
+  { jenis: "AVANZA SOROAKO", nopol: "DP1851GH", project: "REFRACTORY LINING", lokasi: "SULAWESI" },
+  { jenis: "DAIHATSU SIGRA", nopol: "DP1337GM", project: "VALE", lokasi: "SOROAKO" },
+  { jenis: "MITSUBISHI STRADA", nopol: "L8415GD", project: "ANUGERAH AKHZAM", lokasi: "GRESIK" },
+  { jenis: "INNOVA [TOYOTA] hitam", nopol: "W1914DL", project: "FABRIKASI ELECTRODE CASING", lokasi: "SULAWESI" },
+  { jenis: "DUMP TRUCK ADZ-024", nopol: "W8085ED", project: "EXCAVATOR & DUMPTRUCK", lokasi: "GRESIK" },
+  { jenis: "MITSHUBISHI EXPANDER", nopol: "W1417DR", project: "HEAD OFFICE", lokasi: "GRESIK" },
+  { jenis: "TOYOTA HILUX DOUBEL KABIN", nopol: "W8372ED", project: "VACUUM TRUCK", lokasi: "GRESIK" },
+  { jenis: "TOYOTA HILUX DOUBEL KABIN LIME PACKAGE", nopol: "W8381ED", project: "LIME PACKAGE", lokasi: "GRESIK" },
+  { jenis: "ELF NEW", nopol: "W7108AG", project: "HEAD OFFICE", lokasi: "GRESIK" },
+  { jenis: "TOYOTA RANGGA", nopol: "W8561ED", project: "BORNEO ALUMINA INDO", lokasi: "KALIMANTAN" },
+  { jenis: "TRUK TRONTON VAKUM [FAW]", nopol: "W8328ED", project: "VACUUM TRUCK", lokasi: "GRESIK" },
+  { jenis: "TRUCK HINO", nopol: "W8572ED", project: "HEAD OFFICE", lokasi: "GRESIK" },
+];
+
 
 async function main() {
   console.log('Start seeding...')
@@ -56,7 +57,7 @@ async function main() {
   // Delete all existing drivers and kendaraan
   await prisma.driver.deleteMany({})
   console.log('Deleted all existing drivers.')
-  
+
   await prisma.kendaraan.deleteMany({})
   console.log('Deleted all existing kendaraan.')
 
@@ -77,7 +78,9 @@ async function main() {
       data: {
         jenis: item.jenis,
         nopol: item.nopol,
-        status: 'tersedia'
+        status: 'tersedia',
+        project: item.project,
+        lokasi: item.lokasi
       }
     })
     console.log(`Created kendaraan with id: ${kendaraan.id}, jenis: ${kendaraan.jenis}`)

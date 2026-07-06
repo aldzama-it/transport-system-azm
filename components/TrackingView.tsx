@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Search, FileText, Calendar, Building, MapPin, Car, UserCircle, AlertCircle, CheckCircle2, Clock, Ban } from "lucide-react";
+import { Search, FileText, Calendar, Building, MapPin, Car, UserCircle, AlertCircle, CheckCircle2, Clock, Ban, Phone } from "lucide-react";
 import { format } from "date-fns";
 
 const statusConfig: Record<string, { color: string, icon: any, label: string }> = {
@@ -268,7 +268,19 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
                   <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><UserCircle className="w-5 h-5 text-indigo-500" /> Driver</h3>
                   <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 min-h-[100px] flex flex-col justify-center">
                     {selectedRequest.driver ? (
-                      <p className="font-bold text-slate-900">{selectedRequest.driver.nama}</p>
+                      <>
+                        <p className="font-bold text-slate-900">{selectedRequest.driver.nama}</p>
+                        {selectedRequest.driver.telepon && (
+                          <a 
+                            href={`https://wa.me/${selectedRequest.driver.telepon.replace(/\D/g, '').replace(/^0/, '62')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-lg font-bold mt-2 hover:bg-green-100 transition-colors w-max border border-green-200"
+                          >
+                            <Phone className="w-4 h-4" /> {selectedRequest.driver.telepon}
+                          </a>
+                        )}
+                      </>
                     ) : (
                       <p className="text-slate-500 italic">Belum ditentukan</p>
                     )}
