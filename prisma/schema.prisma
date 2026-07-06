@@ -49,6 +49,8 @@ model Kendaraan {
   jenis    String
   nopol    String   @unique
   status   String   @default("tersedia")
+  project  String?
+  lokasi   String?
   requests Request[]
 }
 
