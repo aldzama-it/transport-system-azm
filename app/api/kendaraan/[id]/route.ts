@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user?.role === "staff_transport") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
     const resolvedParams = await params;
     const id = parseInt(resolvedParams.id, 10);
     const body = await req.json();
@@ -28,6 +35,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user?.role === "staff_transport") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
     const resolvedParams = await params;
     const id = parseInt(resolvedParams.id, 10);
     
