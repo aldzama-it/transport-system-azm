@@ -12,15 +12,12 @@ export default async function AssetsPage() {
     redirect("/login");
   }
 
-  // Hanya koordinator dan admin yang bisa mengakses penuh halaman ini
   const role = session.user?.role as string;
-  if (role !== "koordinator" && role !== "admin") {
-    redirect("/dashboard");
-  }
+  const isReadOnly = role === "staff_transport";
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <AssetsClient />
+      <AssetsClient readOnly={isReadOnly} />
     </main>
   );
 }

@@ -7,26 +7,16 @@ export default withAuth(
     const isAuth = !!token;
     const isAuthPage = req.nextUrl.pathname.startsWith("/login");
     const isDashboard = req.nextUrl.pathname.startsWith("/dashboard");
-    const isMonitoring = req.nextUrl.pathname.startsWith("/monitoring");
 
     if (isAuthPage) {
       if (isAuth) {
-        if (token?.role === "koordinator") {
-          return NextResponse.redirect(new URL("/dashboard", req.url));
-        }
-        return NextResponse.redirect(new URL("/monitoring", req.url));
+        return NextResponse.redirect(new URL("/dashboard", req.url));
       }
       return null;
     }
 
-    if (!isAuth) {
-      if (isDashboard || isMonitoring) {
-        return NextResponse.redirect(new URL("/login", req.url));
-      }
-    }
-
-    if (isDashboard && token?.role !== "koordinator") {
-      return NextResponse.redirect(new URL("/monitoring", req.url));
+    if (!isAuth && isDashboard) {
+      return NextResponse.redirect(new URL("/login", req.url));
     }
 
     return null;
@@ -39,5 +29,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/monitoring/:path*", "/login"],
+  matcher: ["/dashboard/:path*", "/login"],
 };
