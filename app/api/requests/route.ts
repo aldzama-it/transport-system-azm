@@ -82,3 +82,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { getServerSession } = await import("next-auth");
+    const { authOptions } = await import("@/app/api/auth/[...nextauth]/route");
+    const session = await getServerSession(authOptions);
+    const userRole = (session?.user as any)?.role;
+    
+    if (!session || userRole === "staff_transport") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { prisma } = await import("@/lib/prisma");
+    
+    // RequestHistory will be cascaded automatically by prisma if schema is set up, 
+    // but just to be safe, delete them first or rely on cascade. 
+    // Schema has: request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+    await prisma.request.deleteMany();
+
+    return NextResponse.json({ success: true, message: "Semua data berhasil dihapus" });
+  } catch (error: any) {
+    console.error("Error deleting all requests:", error);
+    return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
+  }
+}

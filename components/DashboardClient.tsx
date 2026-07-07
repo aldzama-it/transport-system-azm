@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import {
   Search, FileText, Calendar, Building, MapPin,
   Car, UserCircle, AlertCircle, CheckCircle2,
-  Clock, Ban, Filter, Check, X, LayoutGrid, List, ChevronDown, Download, Plus, Upload, Eye, Trash2, CheckSquare
+  Clock, Ban, Filter, Check, X, LayoutGrid, List, ChevronDown, Download, Plus, Upload, Eye, Trash2, CheckSquare, RefreshCw, Settings
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
@@ -57,13 +57,31 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   }, [filterStatus, filterDivisi, filterKendaraan, filterDriver, search, dateFrom, dateTo, sortOrder, sortField]);
 
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
-  const [actionModal, setActionModal] = useState<"assign" | "deny" | "done" | "delete" | null>(null);
+  const [actionModal, setActionModal] = useState<"assign" | "deny" | "done" | "delete" | "delete-all" | null>(null);
+  const [deleteAllConfirmText, setDeleteAllConfirmText] = useState("");
   const [liveLocation, setLiveLocation] = useState<{ latitude: number, longitude: number, speed: string, lastUpdated: string } | null>(null);
   const [isTrackingLoading, setIsTrackingLoading] = useState(false);
   const [trackingError, setTrackingError] = useState<string | null>(null);
 
   const [selectedDriver, setSelectedDriver] = useState("");
   const [selectedKendaraan, setSelectedKendaraan] = useState("");
+
+  const busyDriverIds = new Set(
+    requests
+      .filter(r => (r.status === 'pending' || r.status === 'granted') && r.id !== selectedRequest?.id)
+      .map(r => r.driver?.id)
+      .filter(Boolean)
+  );
+
+  const busyKendaraanIds = new Set(
+    requests
+      .filter(r => (r.status === 'pending' || r.status === 'granted') && r.id !== selectedRequest?.id)
+      .map(r => r.kendaraan?.id)
+      .filter(Boolean)
+  );
+
+  const availableDrivers = drivers.filter(d => !busyDriverIds.has(d.id));
+  const availableKendaraan = kendaraan.filter(k => !busyKendaraanIds.has(k.id));
   const [assignCatatan, setAssignCatatan] = useState("");
   const [alasanDeny, setAlasanDeny] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -234,6 +252,30 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
     }
   };
 
+  const handleDeleteAll = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (deleteAllConfirmText !== "HAPUS SEMUA") return;
+    setIsProcessing(true);
+    try {
+      const res = await fetch("/api/requests", {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || "Semua histori berhasil dihapus");
+        setActionModal(null);
+        setDeleteAllConfirmText("");
+        fetchData();
+      } else {
+        toast.error(data.error || "Gagal menghapus data");
+      }
+    } catch (e) {
+      toast.error("Terjadi kesalahan sistem");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
 
@@ -325,86 +367,116 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               </button>
               <div className="relative">
                 <button
-                  onClick={() => setOpenDropdown(openDropdown === 'import-menu' ? null : 'import-menu')}
-                  disabled={isImporting}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                  onClick={() => setOpenDropdown(openDropdown === 'more-menu' ? null : 'more-menu')}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors shadow-sm focus:ring-2 focus:ring-slate-300 focus:ring-offset-2"
                 >
-                  <Upload className="w-4 h-4" />
-                  {isImporting ? "Mengimpor..." : "Import"}
-                  <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === 'import-menu' ? 'rotate-180' : ''}`} />
+                  <Settings className="w-4 h-4" />
+                  <span className="hidden sm:inline">Kelola Data</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === 'more-menu' ? 'rotate-180' : ''}`} />
                 </button>
-                {openDropdown === 'import-menu' && (
+                {openDropdown === 'more-menu' && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden font-normal text-slate-700">
+                      
+                      {!readOnly && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={isImporting}
+                            onClick={() => {
+                              setOpenDropdown(null);
+                              fileInputRef.current?.click();
+                            }}
+                            className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 transition-colors border-b border-slate-100 disabled:opacity-50"
+                          >
+                            <Upload className="w-4 h-4 text-purple-600" />
+                            <span className="font-semibold text-slate-700">{isImporting ? "Mengimpor..." : "Import Excel"}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenDropdown(null);
+                              handleDownloadTemplate();
+                            }}
+                            className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 transition-colors border-b border-slate-100"
+                          >
+                            <FileText className="w-4 h-4 text-blue-600" />
+                            <span className="font-medium text-slate-600">Template Import</span>
+                          </button>
+                        </>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => {
                           setOpenDropdown(null);
-                          fileInputRef.current?.click();
-                        }}
-                        className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 transition-colors border-b border-slate-100"
-                      >
-                        <Upload className="w-4 h-4 text-purple-600" />
-                        <span className="font-semibold text-slate-700">Import dari Excel</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOpenDropdown(null);
-                          handleDownloadTemplate();
+                          if (processedRequests.length === 0) {
+                            toast.error("Tidak ada data untuk diekspor");
+                            return;
+                          }
+                          const exportData = processedRequests.map(req => ({
+                            "No Form": req.noForm,
+                            "Pemohon": req.namaPemohon,
+                            "Divisi": req.divisi,
+                            "Tujuan": req.tujuan,
+                            "Tgl Mulai": req.tglMulai ? format(new Date(req.tglMulai), "dd/MM/yyyy") : "",
+                            "Jam Mulai": req.tglMulai ? (format(new Date(req.tglMulai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglMulai), "HH:mm")) : "",
+                            "Tgl Selesai": req.tglSelesai ? format(new Date(req.tglSelesai), "dd/MM/yyyy") : "",
+                            "Jam Selesai": req.tglSelesai ? (format(new Date(req.tglSelesai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglSelesai), "HH:mm")) : "",
+                            "Status": statusConfig[req.status]?.label || req.status,
+                            "Driver": req.driver ? req.driver.nama : "-",
+                            "Kendaraan": req.kendaraan ? req.kendaraan.jenis : "-",
+                            "No. Polisi": req.kendaraan ? req.kendaraan.nopol : "-",
+                            "Waktu Pengajuan": format(new Date(req.createdAt), "dd/MM/yyyy HH:mm"),
+                            "Catatan Koor": req.history?.find((h: any) => h.status === 'granted')?.catatan || ""
+                          }));
+                          const worksheet = XLSX.utils.json_to_sheet(exportData);
+                          const workbook = XLSX.utils.book_new();
+                          XLSX.utils.book_append_sheet(workbook, worksheet, "Data Transport");
+                          XLSX.writeFile(workbook, `Data_Transport_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`);
+                          toast.success("Data berhasil diekspor ke Excel");
                         }}
                         className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 transition-colors"
                       >
-                        <Download className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium text-slate-600">Unduh Template Excel</span>
+                        <Download className="w-4 h-4 text-emerald-600" />
+                        <span className="font-semibold text-slate-700">Export Excel</span>
                       </button>
+
+                      {!readOnly && (
+                        <>
+                          <div className="border-t border-slate-100"></div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenDropdown(null);
+                              setDeleteAllConfirmText("");
+                              setActionModal('delete-all');
+                            }}
+                            className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm hover:bg-red-50 text-red-600 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span className="font-bold">Hapus Semua</span>
+                          </button>
+                        </>
+                      )}
+
                     </div>
                   </>
                 )}
               </div>
-              <input
-                type="file"
-                accept=".xlsx"
-                className="hidden"
-                ref={fileInputRef}
-                onChange={handleImport}
-              />
+
+              {!readOnly && (
+                <input
+                  type="file"
+                  accept=".xlsx"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={handleImport}
+                />
+              )}
             </>
           )}
-          <button
-            onClick={() => {
-              if (processedRequests.length === 0) {
-                toast.error("Tidak ada data untuk diekspor");
-                return;
-              }
-              const exportData = processedRequests.map(req => ({
-                "No Form": req.noForm,
-                "Pemohon": req.namaPemohon,
-                "Divisi": req.divisi,
-                "Tujuan": req.tujuan,
-                "Tgl Mulai": req.tglMulai ? format(new Date(req.tglMulai), "dd/MM/yyyy") : "",
-                "Jam Mulai": req.tglMulai ? (format(new Date(req.tglMulai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglMulai), "HH:mm")) : "",
-                "Tgl Selesai": req.tglSelesai ? format(new Date(req.tglSelesai), "dd/MM/yyyy") : "",
-                "Jam Selesai": req.tglSelesai ? (format(new Date(req.tglSelesai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglSelesai), "HH:mm")) : "",
-                "Status": statusConfig[req.status]?.label || req.status,
-                "Driver": req.driver ? req.driver.nama : "-",
-                "Kendaraan": req.kendaraan ? req.kendaraan.jenis : "-",
-                "No. Polisi": req.kendaraan ? req.kendaraan.nopol : "-",
-                "Waktu Pengajuan": format(new Date(req.createdAt), "dd/MM/yyyy HH:mm"),
-                "Catatan Koor": req.history?.find((h: any) => h.status === 'granted')?.catatan || ""
-              }));
-              const worksheet = XLSX.utils.json_to_sheet(exportData);
-              const workbook = XLSX.utils.book_new();
-              XLSX.utils.book_append_sheet(workbook, worksheet, "Data Transport");
-              XLSX.writeFile(workbook, `Data_Transport_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`);
-              toast.success("Data berhasil diekspor ke Excel");
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-sm focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-          >
-            <Download className="w-4 h-4" />
-            Export Excel
-          </button>
         </div>
       </div>
 
@@ -494,6 +566,19 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               className="px-3 py-2 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:ring-2 focus:ring-indigo-600 text-slate-600 font-medium w-full sm:w-auto"
               title="Tanggal Mulai (Sampai)"
             />
+            {(search || dateFrom || dateTo) && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+                className="p-2 bg-slate-100 text-slate-500 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors"
+                title="Reset Filter"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
         </div>
@@ -752,7 +837,13 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                           <>
                             <button
                               title="Setujui"
-                              onClick={() => { setSelectedRequest(req); setActionModal('assign'); }}
+                              onClick={() => { 
+                                setSelectedRequest(req); 
+                                setSelectedDriver(""); 
+                                setSelectedKendaraan(""); 
+                                setAssignCatatan("");
+                                setActionModal('assign'); 
+                              }}
                               className="p-2 bg-green-50 text-green-600 font-semibold border border-green-200 rounded-lg hover:bg-green-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
                             >
                               <Check className="w-4 h-4" />
@@ -767,13 +858,28 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                           </>
                         )}
                         {!readOnly && req.status === 'granted' && (
-                          <button
-                            title="Selesai"
-                            onClick={() => { setSelectedRequest(req); setActionModal('done'); }}
-                            className="p-2 bg-green-50 text-green-600 font-semibold border border-green-200 rounded-lg hover:bg-green-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
-                          >
-                            <CheckSquare className="w-4 h-4" />
-                          </button>
+                          <>
+                            <button
+                              title="Tukar Driver/Kendaraan"
+                              onClick={() => { 
+                                setSelectedRequest(req); 
+                                setSelectedDriver(req.driver?.id?.toString() || ""); 
+                                setSelectedKendaraan(req.kendaraan?.id?.toString() || ""); 
+                                setAssignCatatan("");
+                                setActionModal('assign'); 
+                              }}
+                              className="p-2 bg-indigo-50 text-indigo-600 font-semibold border border-indigo-200 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </button>
+                            <button
+                              title="Selesai"
+                              onClick={() => { setSelectedRequest(req); setActionModal('done'); }}
+                              className="p-2 bg-green-50 text-green-600 font-semibold border border-green-200 rounded-lg hover:bg-green-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
+                            >
+                              <CheckSquare className="w-4 h-4" />
+                            </button>
+                          </>
                         )}
                         {!readOnly && (
                           <button
@@ -941,12 +1047,12 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
         </div>
       )}
 
-      {/* Action Modals */}
-      {actionModal && (
+      {/* Modal Aksi */}
+      {actionModal && actionModal !== 'delete-all' && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
             <h3 className="text-xl font-bold text-slate-900 mb-4">
-              {actionModal === 'assign' ? 'Setujui & Tugaskan' : actionModal === 'deny' ? 'Tolak Permintaan' : 'Tandai Selesai'}
+              {actionModal === 'assign' ? (selectedRequest?.status === 'granted' ? 'Tukar Penugasan' : 'Setujui & Tugaskan') : actionModal === 'deny' ? 'Tolak Permintaan' : actionModal === 'delete' ? 'Hapus Permintaan' : 'Tandai Selesai'}
             </h3>
 
             <form onSubmit={handleAction}>
@@ -955,51 +1061,46 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Driver</label>
                     <div className="relative">
-                      <input
-                        type="text"
-                        required
-                        value={selectedDriver}
-                        onChange={(e) => {
-                          setSelectedDriver(e.target.value);
-                          setOpenDropdown('action-driver');
-                        }}
-                        onFocus={() => setOpenDropdown('action-driver')}
-                        placeholder="Ketik atau pilih driver..."
-                        className="w-full px-4 py-3 pr-10 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-slate-900"
-                      />
                       <button
                         type="button"
                         onClick={() => setOpenDropdown(openDropdown === 'action-driver' ? null : 'action-driver')}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center z-10 focus:outline-none"
+                        className="flex justify-between items-center w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-left"
                       >
-                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openDropdown === 'action-driver' ? 'rotate-180' : ''}`} />
+                        <span className={selectedDriver ? "text-slate-900" : "text-slate-500"}>
+                          {selectedDriver ? (
+                            (() => {
+                              const d = drivers.find(d => d.id.toString() === selectedDriver);
+                              return d ? d.nama : "-- Pilih Driver --";
+                            })()
+                          ) : "-- Pilih Driver --"}
+                        </span>
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
                       </button>
                       {openDropdown === 'action-driver' && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
                           <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-y-auto overflow-x-hidden max-h-[380px] overscroll-contain font-normal text-slate-700">
-                            {drivers.filter(d => d.nama.toLowerCase().includes(selectedDriver.toLowerCase())).map(d => (
+                            <button
+                              type="button"
+                              onClick={() => { setSelectedDriver(""); setOpenDropdown(null); }}
+                              className="w-full text-left px-4 py-3 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors border-b border-slate-100 text-slate-500"
+                            >
+                              -- Pilih Driver --
+                            </button>
+                            {availableDrivers.map(d => (
                               <button
                                 key={d.id}
                                 type="button"
-                                onClick={() => { setSelectedDriver(d.nama); setOpenDropdown(null); }}
-                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${selectedDriver === d.nama ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}
+                                onClick={() => { setSelectedDriver(d.id.toString()); setOpenDropdown(null); }}
+                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${selectedDriver === d.id.toString() ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}
                               >
                                 {d.nama}
                               </button>
                             ))}
-                            {selectedDriver && !drivers.some(d => d.nama.toLowerCase() === selectedDriver.toLowerCase()) && (
-                              <button
-                                type="button"
-                                onClick={() => setOpenDropdown(null)}
-                                className="w-full text-left px-4 py-3 hover:bg-indigo-50 text-indigo-700 transition-colors border-t border-slate-100 text-sm font-semibold"
-                              >
-                                + Tambah "{selectedDriver}" sebagai driver
-                              </button>
-                            )}
                           </div>
                         </>
                       )}
+                      <input type="text" required value={selectedDriver} onChange={() => { }} className="opacity-0 absolute inset-0 -z-10 w-full h-full pointer-events-none" />
                     </div>
                   </div>
                   <div>
@@ -1031,7 +1132,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                             >
                               -- Pilih Kendaraan --
                             </button>
-                            {kendaraan.map(k => (
+                            {availableKendaraan.map(k => (
                               <button
                                 key={k.id}
                                 type="button"
@@ -1133,6 +1234,54 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {actionModal === 'delete-all' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-red-50">
+              <h3 className="text-lg font-bold text-red-700 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                Hapus Semua Histori Permintaan
+              </h3>
+              <button onClick={() => setActionModal(null)} className="text-red-400 hover:text-red-600 transition-colors"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleDeleteAll} className="p-6">
+              <p className="text-slate-600 mb-4 leading-relaxed">
+                Tindakan ini akan <span className="font-bold text-red-600">MENGHAPUS SEMUA DATA</span> permintaan transportasi dan historinya secara permanen. Tindakan ini tidak dapat dibatalkan.
+              </p>
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Ketik <span className="text-red-600 bg-red-50 px-1 py-0.5 rounded select-all font-mono">HAPUS SEMUA</span> untuk mengonfirmasi:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={deleteAllConfirmText}
+                  onChange={(e) => setDeleteAllConfirmText(e.target.value)}
+                  placeholder="HAPUS SEMUA"
+                  className="w-full px-4 py-3 border border-red-200 rounded-xl focus:ring-2 focus:ring-red-600 bg-red-50/30 text-slate-900 font-bold"
+                />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setActionModal(null)}
+                  className="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-50 rounded-xl transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessing || deleteAllConfirmText !== "HAPUS SEMUA"}
+                  className="px-4 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                >
+                  {isProcessing ? "Menghapus..." : "Saya mengerti, hapus semua"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
