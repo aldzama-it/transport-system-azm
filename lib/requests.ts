@@ -122,6 +122,23 @@ export async function getRequestByNoForm(noForm: string) {
 
 export async function assignRequest(id: number, staffId: number, driverId: number, kendaraanId: number, catatan?: string) {
   return await prisma.$transaction(async (tx) => {
+    // Check if driver is assigned to another active request
+    const activeStatuses = [RequestStatus.pending, RequestStatus.granted];
+    const existingDriverReq = await tx.request.findFirst({
+      where: { driverId, status: { in: activeStatuses }, id: { not: id } }
+    });
+    if (existingDriverReq) {
+      throw new Error(`Driver sedang ditugaskan di form ${existingDriverReq.noForm}`);
+    }
+
+    // Check if kendaraan is assigned to another active request
+    const existingKendaraanReq = await tx.request.findFirst({
+      where: { kendaraanId, status: { in: activeStatuses }, id: { not: id } }
+    });
+    if (existingKendaraanReq) {
+      throw new Error(`Kendaraan sedang digunakan di form ${existingKendaraanReq.noForm}`);
+    }
+
     const req = await tx.request.update({
       where: { id },
       data: {
