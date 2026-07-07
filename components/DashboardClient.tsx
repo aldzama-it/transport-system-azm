@@ -359,11 +359,18 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 Live Tracking
               </button>
               <button
+                onClick={() => router.push('/dashboard/jadwal')}
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              >
+                <Calendar className="w-4 h-4" />
+                Jadwal Pemakaian
+              </button>
+              <button
                 onClick={() => router.push('/dashboard/assets')}
                 className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
               >
-                <Calendar className="w-4 h-4" />
-                Data Kendaraan
+                <Car className="w-4 h-4" />
+                Kendaraan & Driver
               </button>
               <div className="relative">
                 <button
