@@ -2,19 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, isSameDay, addMonths, subMonths } from "date-fns";
-import { id } from "date-fns/locale";
-import { Calendar as CalendarIcon, Car, UserCircle, ChevronLeft, ChevronRight, Plus, Trash2, ArrowLeft, Search, Filter, Pencil, X, Check } from "lucide-react";
+import { Car, UserCircle, Plus, Trash2, ArrowLeft, Search, Filter, Pencil, X, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function AssetsClient({ readOnly = false }: { readOnly?: boolean }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"jadwal" | "driver" | "kendaraan">("jadwal");
+  const [activeTab, setActiveTab] = useState<"driver" | "kendaraan">("driver");
   const [isLoading, setIsLoading] = useState(true);
   
   const [drivers, setDrivers] = useState<any[]>([]);
   const [kendaraan, setKendaraan] = useState<any[]>([]);
-  const [requests, setRequests] = useState<any[]>([]);
 
   // Pagination state
   const [driverPage, setDriverPage] = useState(1);
@@ -50,25 +47,17 @@ export default function AssetsClient({ readOnly = false }: { readOnly?: boolean 
   const [deleteType, setDeleteType] = useState<"driver" | "kendaraan" | null>(null);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
 
-  // Calendar state
-  const [currentDate, setCurrentDate] = useState(new Date());
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [reqRes, drvRes, kenRes] = await Promise.all([
-        fetch('/api/requests'),
+      const [drvRes, kenRes] = await Promise.all([
         fetch('/api/drivers'),
         fetch('/api/kendaraan')
       ]);
-      const reqData = await reqRes.json();
       const drvData = await drvRes.json();
       const kenData = await kenRes.json();
       
-      if (reqData.success) {
-        // Hanya ambil jadwal yang sudah disetujui
-        setRequests(reqData.data.filter((r: any) => r.status === 'granted'));
-      }
       if (drvData.success) setDrivers(drvData.data);
       if (kenData.success) setKendaraan(kenData.data);
     } catch (e) {
@@ -215,28 +204,6 @@ export default function AssetsClient({ readOnly = false }: { readOnly?: boolean 
     }
   };
 
-  // Calendar logic
-  const monthStart = startOfMonth(currentDate);
-  const monthEnd = endOfMonth(monthStart);
-  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
-  const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
-
-  const getBookingsForDay = (day: Date) => {
-    return requests.filter(req => {
-      const mulai = new Date(req.tglMulai);
-      // Buang jam/menit untuk komparasi tanggal yang adil (karena input Excel dsb bisa midnight)
-      mulai.setHours(0,0,0,0);
-      const dayStart = new Date(day);
-      dayStart.setHours(0,0,0,0);
-      
-      let selesai = req.tglSelesai ? new Date(req.tglSelesai) : new Date(mulai);
-      selesai.setHours(23,59,59,999);
-      
-      return dayStart >= mulai && dayStart <= selesai;
-    });
-  };
-
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -274,13 +241,6 @@ export default function AssetsClient({ readOnly = false }: { readOnly?: boolean 
       {/* Tabs */}
       <div className="bg-white p-1 rounded-2xl border border-slate-200 shadow-sm inline-flex mb-8">
         <button
-          onClick={() => setActiveTab('jadwal')}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${activeTab === 'jadwal' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
-        >
-          <CalendarIcon className="w-4 h-4" />
-          Jadwal Pemakaian
-        </button>
-        <button
           onClick={() => setActiveTab('driver')}
           className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${activeTab === 'driver' ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
         >
@@ -303,96 +263,6 @@ export default function AssetsClient({ readOnly = false }: { readOnly?: boolean 
         </div>
       ) : (
         <>
-          {/* Jadwal Tab */}
-          {activeTab === 'jadwal' && (
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-lg font-bold text-slate-800 capitalize">
-                    {format(currentDate, "MMMM yyyy", { locale: id })}
-                  </h2>
-                  <button 
-                    onClick={() => setCurrentDate(new Date())}
-                    className="text-xs font-semibold px-3 py-1 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors"
-                  >
-                    Hari Ini
-                  </button>
-                </div>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-                    className="p-2 border border-slate-200 rounded-xl hover:bg-white bg-slate-50 text-slate-600 transition-colors"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <button 
-                    onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-                    className="p-2 border border-slate-200 rounded-xl hover:bg-white bg-slate-50 text-slate-600 transition-colors"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-              <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50/50">
-                {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map(day => (
-                  <div key={day} className="py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    {day}
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 auto-rows-fr">
-                {calendarDays.map((day, i) => {
-                  const bookings = getBookingsForDay(day);
-                  const isCurrentMonth = isSameMonth(day, currentDate);
-                  const isTodayDate = isToday(day);
-                  return (
-                    <div 
-                      key={day.toISOString()} 
-                      className={`min-h-[140px] p-2.5 border-b border-r border-slate-100 transition-colors hover:bg-slate-50/80 group/cell ${!isCurrentMonth ? 'bg-slate-50/40 opacity-50' : 'bg-white'} ${isTodayDate ? 'ring-2 ring-inset ring-indigo-500 bg-indigo-50/10' : ''}`}
-                    >
-                      <div className="flex justify-between items-start mb-2.5">
-                        <span className={`text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full transition-transform group-hover/cell:scale-110 ${isTodayDate ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'}`}>
-                          {format(day, 'd')}
-                        </span>
-                        {bookings.length > 0 && (
-                          <span className="text-[10px] font-black text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
-                            {bookings.length} Agenda
-                          </span>
-                        )}
-                      </div>
-                      <div className="space-y-1.5 overflow-y-auto max-h-[100px] hide-scrollbar pr-1">
-                        {bookings.map((b, idx) => {
-                          // Variasi warna untuk membedakan item
-                          const colorVariants = [
-                            "bg-indigo-600 border-indigo-700 hover:bg-indigo-700 text-white",
-                            "bg-blue-600 border-blue-700 hover:bg-blue-700 text-white",
-                            "bg-emerald-600 border-emerald-700 hover:bg-emerald-700 text-white",
-                            "bg-violet-600 border-violet-700 hover:bg-violet-700 text-white"
-                          ];
-                          const colorClass = colorVariants[idx % colorVariants.length];
-                          
-                          return (
-                            <div key={b.id} className={`text-xs px-2.5 py-2 rounded-lg border shadow-sm cursor-default group relative transition-colors ${colorClass}`}>
-                              <p className="font-bold truncate text-[11px] mb-0.5 flex items-center gap-1.5">
-                                <Car className="w-3.5 h-3.5 opacity-90" />
-                                {b.kendaraan?.jenis || "Belum ada mobil"}
-                              </p>
-                              <p className="font-medium truncate text-[10px] flex items-center gap-1.5 opacity-90">
-                                <UserCircle className="w-3.5 h-3.5" />
-                                {b.driver?.nama || "Tanpa driver"}
-                              </p>
-                              {/* Tooltip removed per user request */}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Driver Tab */}
           {activeTab === 'driver' && (() => {
             let processedDrivers = [...drivers];
