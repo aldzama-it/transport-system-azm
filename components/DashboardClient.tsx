@@ -57,7 +57,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   }, [filterStatus, filterDivisi, filterKendaraan, filterDriver, search, dateFrom, dateTo, sortOrder, sortField]);
 
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
-  const [actionModal, setActionModal] = useState<"assign" | "deny" | "done" | "delete" | "delete-all" | null>(null);
+  const [actionModal, setActionModal] = useState<"assign" | "deny" | "done" | "delete" | "delete-all" | "bulk-delete" | null>(null);
   const [deleteAllConfirmText, setDeleteAllConfirmText] = useState("");
   const [liveLocation, setLiveLocation] = useState<{ latitude: number, longitude: number, speed: string, lastUpdated: string } | null>(null);
   const [isTrackingLoading, setIsTrackingLoading] = useState(false);
@@ -278,6 +278,44 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      const pageIds = paginatedRequests.map(r => r.id);
+      setSelectedIds(prev => Array.from(new Set([...prev, ...pageIds])));
+    } else {
+      const pageIds = paginatedRequests.map(r => r.id);
+      setSelectedIds(prev => prev.filter(id => !pageIds.includes(id)));
+    }
+  };
+
+  const handleSelectRow = (id: number, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(i => i !== id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setIsProcessing(true);
+    try {
+      for (const id of selectedIds) {
+        await fetch(`/api/requests/${id}`, { method: 'DELETE' });
+      }
+      toast.success(`${selectedIds.length} data berhasil dihapus`);
+      setSelectedIds([]);
+      setActionModal(null);
+      fetchData();
+    } catch (e) {
+      toast.error("Terjadi kesalahan saat menghapus data massal");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
 
   const handleDownloadTemplate = () => {
     const templateData = [{
@@ -591,6 +629,30 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
         </div>
       </div>
 
+      {/* Bulk Actions */}
+      {!readOnly && selectedIds.length > 0 && (
+        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 mb-6 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <span className="bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">{selectedIds.length}</span>
+            <span className="font-semibold text-indigo-900">data terpilih</span>
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setSelectedIds([])} 
+              className="px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+            >
+              Batal
+            </button>
+            <button 
+              onClick={() => setActionModal('bulk-delete')} 
+              className="px-3 py-1.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Hapus Terpilih
+            </button>
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="text-center py-20 text-slate-500">Memuat data...</div>
       ) : (
@@ -602,7 +664,17 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
             <table className="w-full text-left border-collapse min-w-max">
               <thead>
                 <tr className="bg-indigo-600 border-b border-indigo-700 text-sm font-semibold text-white uppercase tracking-wider">
-                  <th className="p-5 pl-6 align-middle">
+                  {!readOnly && (
+                    <th className="p-5 pl-6 align-middle w-12">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 rounded border-indigo-400 text-indigo-900 focus:ring-indigo-500 bg-indigo-700 cursor-pointer"
+                        checked={paginatedRequests.length > 0 && paginatedRequests.every(r => selectedIds.includes(r.id))}
+                        onChange={handleSelectAll}
+                      />
+                    </th>
+                  )}
+                  <th className={readOnly ? "p-5 pl-6 align-middle" : "p-5 align-middle"}>
                     <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if (sortField === 'noForm') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('noForm'); setSortOrder('desc'); } }}>
                       <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">No Form</span>
                       {sortField === 'noForm' ? (
@@ -753,8 +825,18 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 ) : paginatedRequests.map(req => {
                   const status = statusConfig[req.status];
                   return (
-                    <tr key={req.id} className="even:bg-slate-50 odd:bg-white hover:bg-slate-100 transition-colors">
-                      <td className="p-5 pl-6 font-bold text-slate-900">{req.noForm}</td>
+                    <tr key={req.id} className={`transition-colors ${selectedIds.includes(req.id) ? 'bg-indigo-50/70 hover:bg-indigo-100/70' : 'even:bg-slate-50 odd:bg-white hover:bg-slate-100'}`}>
+                      {!readOnly && (
+                        <td className="p-5 pl-6 align-middle w-12">
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer"
+                            checked={selectedIds.includes(req.id)}
+                            onChange={(e) => handleSelectRow(req.id, e.target.checked)}
+                          />
+                        </td>
+                      )}
+                      <td className={readOnly ? "p-5 pl-6 font-bold text-slate-900" : "p-5 font-bold text-slate-900"}>{req.noForm}</td>
                       <td className="p-5">
                         <p className="text-sm text-slate-600 font-medium">{formatDateTime(req.createdAt)}</p>
                       </td>
@@ -1289,6 +1371,42 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {actionModal === 'bulk-delete' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-red-50">
+              <h3 className="text-lg font-bold text-red-700 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                Hapus {selectedIds.length} Data Terpilih
+              </h3>
+              <button onClick={() => setActionModal(null)} className="text-red-400 hover:text-red-600 transition-colors"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6">
+              <p className="text-slate-600 mb-6 leading-relaxed">
+                Apakah Anda yakin ingin menghapus <span className="font-bold text-slate-800">{selectedIds.length}</span> form yang dipilih?
+                <br /><br />
+                <span className="text-red-600 font-semibold text-sm">Tindakan ini tidak dapat dibatalkan dan seluruh riwayat dari data ini akan ikut terhapus.</span>
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setActionModal(null)}
+                  className="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-50 rounded-xl transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={isProcessing}
+                  className="px-4 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                >
+                  {isProcessing ? "Menghapus..." : `Ya, Hapus ${selectedIds.length} Data`}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
