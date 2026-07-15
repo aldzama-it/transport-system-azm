@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { User, LogOut, LayoutDashboard } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { useTransition } from "./TransitionProvider";
 
 interface UserMenuProps {
   user: {
@@ -14,6 +15,7 @@ interface UserMenuProps {
 }
 
 export default function UserMenu({ user }: UserMenuProps) {
+  const { triggerSplash } = useTransition();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -28,8 +30,11 @@ export default function UserMenu({ user }: UserMenuProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = async () => {
-    await signOut({ callbackUrl: '/login' });
+  const handleLogout = () => {
+    setIsOpen(false);
+    triggerSplash("logout", async () => {
+      await signOut({ callbackUrl: '/login' });
+    });
   };
 
   return (

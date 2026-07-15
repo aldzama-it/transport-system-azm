@@ -2,6 +2,7 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import AuthProvider from "@/components/AuthProvider";
+import { TransitionProvider } from "@/components/TransitionProvider";
 
 const font = Plus_Jakarta_Sans({ subsets: ["latin"] });
 
@@ -21,10 +22,12 @@ export default function RootLayout({
     <html lang="id">
       <body className={`${font.className} bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col`}>
         <AuthProvider>
-          <Navbar />
-          <main className="flex-grow">
-            {children}
-          </main>
+          <TransitionProvider>
+            <Navbar />
+            <main className="flex-grow">
+              {children}
+            </main>
+          </TransitionProvider>
         </AuthProvider>
         <Toaster position="top-center" richColors />
       </body>
