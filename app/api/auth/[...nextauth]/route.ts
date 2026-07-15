@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
@@ -68,4 +69,13 @@ export const authOptions: NextAuthOptions = {
 };
 
 const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+
+export async function GET(req: NextRequest, ctx: { params: Promise<{ nextauth: string[] }> }) {
+  const params = await ctx.params;
+  return handler(req, { params } as any);
+}
+
+export async function POST(req: NextRequest, ctx: { params: Promise<{ nextauth: string[] }> }) {
+  const params = await ctx.params;
+  return handler(req, { params } as any);
+}

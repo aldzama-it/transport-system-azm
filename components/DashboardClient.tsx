@@ -11,6 +11,23 @@ import {
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import dynamic from 'next/dynamic';
+import { motion } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1, y: 0,
+    transition: { duration: 0.5, ease: "easeOut" }
+  }
+};
 
 const DynamicMap = dynamic(() => import('./TrackingMap'), { ssr: false, loading: () => <div className="absolute inset-0 flex items-center justify-center text-slate-400 bg-slate-50"><span className="animate-pulse">Memuat peta...</span></div> });
 
@@ -379,8 +396,13 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   const statCancelled = requests.filter(r => r.status === 'cancelled').length;
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8"
+    >
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900">{readOnly ? "Monitoring" : "Dashboard"}</h1>
           <p className="text-slate-500">Kelola permintaan kendaraan operasional.</p>
@@ -523,9 +545,9 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
             </>
           )}
         </div>
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 hover:shadow-md transition-shadow group">
           <div className="flex-shrink-0 p-2.5 bg-slate-100 text-slate-600 rounded-xl group-hover:scale-110 transition-transform">
             <FileText className="w-5 h-5" />
@@ -580,9 +602,9 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
             <p className="text-xl sm:text-2xl font-black text-slate-700 leading-none truncate">{statCancelled}</p>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6">
+      <motion.div variants={itemVariants} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto flex-wrap">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -627,11 +649,11 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
           </div>
 
         </div>
-      </div>
+      </motion.div>
 
       {/* Bulk Actions */}
       {!readOnly && selectedIds.length > 0 && (
-        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 mb-6 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+        <motion.div variants={itemVariants} className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 mb-6 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center gap-3">
             <span className="bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">{selectedIds.length}</span>
             <span className="font-semibold text-indigo-900">data terpilih</span>
@@ -650,13 +672,13 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               <Trash2 className="w-3.5 h-3.5" /> Hapus Terpilih
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {isLoading ? (
-        <div className="text-center py-20 text-slate-500">Memuat data...</div>
+        <motion.div variants={itemVariants} className="text-center py-20 text-slate-500">Memuat data...</motion.div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm relative">
+        <motion.div variants={itemVariants} className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm relative">
           {openDropdown && (
             <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
           )}
@@ -1021,7 +1043,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               </div>
             </div>
           )}
-        </div>
+        </motion.div>
       )}
 
       {/* Detail Modal */}
@@ -1448,6 +1470,6 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

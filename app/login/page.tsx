@@ -4,14 +4,17 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CarFront, Lock, Mail } from "lucide-react";
+import { useTransition } from "@/components/TransitionProvider";
+import { CarFront, Lock, Mail, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { triggerSplash } = useTransition();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,14 +29,17 @@ export default function LoginPage() {
 
       if (res?.error) {
         toast.error(res.error);
+        setIsSubmitting(false);
       } else {
         toast.success("Login berhasil");
-        router.push("/dashboard");
-        router.refresh();
+        triggerSplash("login", () => {
+          router.push("/dashboard");
+          router.refresh();
+        });
+        // We do not set isSubmitting to false so the button stays disabled/loading while splashing
       }
     } catch (error) {
       toast.error("Terjadi kesalahan sistem");
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -79,13 +85,20 @@ export default function LoginPage() {
                 <Lock className="h-5 w-5 text-slate-400" />
               </div>
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 focus:bg-white"
+                className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 focus:bg-white"
                 placeholder="••••••••"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
           </div>
 
