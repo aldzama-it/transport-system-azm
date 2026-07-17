@@ -11,9 +11,8 @@ import {
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import dynamic from 'next/dynamic';
-import { motion } from "framer-motion";
-
-const containerVariants = {
+import { motion, type Variants } from "framer-motion";
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -21,11 +20,11 @@ const containerVariants = {
   }
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
   visible: {
     opacity: 1, y: 0,
-    transition: { duration: 0.5, ease: "easeOut" }
+    transition: { duration: 0.5, ease: "easeOut" as const}
   }
 };
 

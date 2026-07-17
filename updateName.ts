@@ -1,10 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
   await prisma.staffAkun.updateMany({
-    where: { role: 'staff' },
+    where: { role: Role.staff_transport },
     data: { nama: 'Staff Transport' }
   });
   console.log('Updated staff name');
