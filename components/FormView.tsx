@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Calendar, Building, User, FileText, UploadCloud, CarFront, ArrowRight, MessageCircle, ChevronDown } from "lucide-react";
-import Link from "next/link";
-import { format } from "date-fns";
+import { Calendar, Building, User, FileText, UploadCloud, CarFront, ArrowRight, MessageCircle, ChevronDown, MapPin } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const DIVISIONS = [
   "Business Development",
@@ -45,8 +44,8 @@ const DIVISIONS = [
 ];
 
 export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (noForm?: string) => void }) {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successData, setSuccessData] = useState<{ noForm: string; namaPemohon: string; tujuan: string; tglMulai: string } | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [divisiInput, setDivisiInput] = useState("");
   const [showDivisiDropdown, setShowDivisiDropdown] = useState(false);
@@ -92,7 +91,7 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
       const data = await res.json();
       if (res.ok) {
         toast.success("Permintaan berhasil diajukan!");
-        setSuccessData(data.data);
+        router.push(`/success?noForm=${data.data.noForm}&type=manual`);
       } else {
         toast.error(data.error || "Gagal mengajukan permintaan");
       }
@@ -102,55 +101,6 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
       setIsSubmitting(false);
     }
   };
-
-  if (successData) {
-    return (
-      <div className="max-w-3xl mx-auto py-16 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
-        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 text-center w-full transform transition-all duration-500 hover:shadow-2xl border border-indigo-50">
-          <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 mb-6">
-            <CarFront className="h-10 w-10 text-green-600" />
-          </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Permintaan Terkirim!</h2>
-          <p className="text-lg text-slate-600 mb-6">
-            Terima kasih, permintaan kendaraan Anda telah kami terima. Harap simpan nomor form berikut untuk melacak status permintaan Anda.
-          </p>
-          <div className="bg-slate-50 p-6 rounded-xl inline-block border border-slate-200 mb-6 w-full max-w-sm">
-            <p className="text-sm text-slate-500 font-medium mb-1">Nomor Form:</p>
-            <p className="text-3xl font-black text-indigo-700 tracking-wider">{successData.noForm}</p>
-          </div>
-
-          <div className="bg-green-50 border border-green-200 rounded-xl p-5 mb-8 text-center w-full">
-            <p className="text-sm text-green-800 font-medium mb-4">
-              Penting! Harap konfirmasi form yang telah diajukan ke WhatsApp Koordinator Transportasi agar bisa segera diproses.
-            </p>
-            <a 
-              href={`https://wa.me/6285732769920?text=${encodeURIComponent(`Halo Koor Transport, saya ingin konfirmasi lebih lanjut mengenai permintaan penggunaan kendaraan dengan nomor form: ${successData.noForm} atas nama ${successData.namaPemohon} dengan tujuan ${successData.tujuan} tanggal ${format(new Date(successData.tglMulai), "dd MMM yyyy")} jam ${format(new Date(successData.tglMulai), "HH:mm")}`)}`}
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#25D366] text-white rounded-full font-bold hover:bg-[#128C7E] transition-colors w-full sm:w-auto shadow-sm hover:shadow-md"
-            >
-              <MessageCircle className="w-5 h-5" />
-              Konfirmasi via WhatsApp
-            </a>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button 
-              onClick={() => setSuccessData(null)} 
-              className="px-6 py-3 border border-slate-300 rounded-full text-slate-700 font-semibold hover:bg-slate-50 transition-colors"
-            >
-              Ajukan Lagi
-            </button>
-            <button 
-              onClick={() => onSwitchToTracking(successData.noForm)}
-              className="px-6 py-3 bg-indigo-600 text-white rounded-full font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
-            >
-              Lacak Sekarang <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -268,10 +218,10 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
               
               <div className="grid grid-cols-1 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2 flex justify-between items-end">
-                    <span>Tgl & Jam Mulai</span>
+                  <div className="flex justify-between items-end mb-2">
+                    <label htmlFor="tglMulai" className="block text-sm font-medium text-slate-700">Tgl & Jam Mulai</label>
                     <span className="text-xs text-slate-400 font-normal">Jam opsional</span>
-                  </label>
+                  </div>
                   <div className="flex gap-2">
                     <input
                       type="date"
@@ -289,10 +239,10 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2 flex justify-between items-end">
-                    <span>Tgl & Jam Selesai</span>
+                  <div className="flex justify-between items-end mb-2">
+                    <label htmlFor="tglSelesai" className="block text-sm font-medium text-slate-700">Tgl & Jam Selesai</label>
                     <span className="text-xs text-slate-400 font-normal">Jam opsional</span>
-                  </label>
+                  </div>
                   <div className="flex gap-2">
                     <input
                       type="date"
@@ -314,22 +264,43 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                 </div>
               </div>
 
-              <div>
-                <label htmlFor="tujuan" className="block text-sm font-medium text-slate-700 mb-2">
-                  Tujuan Penggunaan
-                </label>
-                <div className="relative">
-                  <div className="absolute top-3 left-3 pointer-events-none">
-                    <FileText className="h-5 w-5 text-slate-400" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="titikJemput" className="block text-sm font-medium text-slate-700 mb-2">
+                    Titik Jemput
+                  </label>
+                  <div className="relative">
+                    <div className="absolute top-3 left-3 pointer-events-none">
+                      <MapPin className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <textarea
+                      name="titikJemput"
+                      id="titikJemput"
+                      required
+                      rows={3}
+                      className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none"
+                      placeholder="Lokasi penjemputan awal..."
+                    />
                   </div>
-                  <textarea
-                    name="tujuan"
-                    id="tujuan"
-                    required
-                    rows={3}
-                    className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none"
-                    placeholder="Jelaskan tujuan pemakaian..."
-                  />
+                </div>
+
+                <div>
+                  <label htmlFor="tujuan" className="block text-sm font-medium text-slate-700 mb-2">
+                    Titik Tujuan
+                  </label>
+                  <div className="relative">
+                    <div className="absolute top-3 left-3 pointer-events-none">
+                      <MapPin className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <textarea
+                      name="tujuan"
+                      id="tujuan"
+                      required
+                      rows={3}
+                      className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none"
+                      placeholder="Lokasi tujuan akhir..."
+                    />
+                  </div>
                 </div>
               </div>
             </div>

@@ -25,7 +25,7 @@ const itemVariants = {
   hidden: { opacity: 0, y: 10 },
   visible: {
     opacity: 1, y: 0,
-    transition: { duration: 0.5, ease: "easeOut" }
+    transition: { duration: 0.5 }
   }
 };
 
@@ -34,6 +34,9 @@ const DynamicMap = dynamic(() => import('./TrackingMap'), { ssr: false, loading:
 const statusConfig: Record<string, { color: string, icon: any, label: string }> = {
   pending: { color: "bg-amber-100 text-amber-700 border-amber-200", icon: Clock, label: "Pending" },
   granted: { color: "bg-blue-100 text-blue-700 border-blue-200", icon: CheckCircle2, label: "Disetujui (Granted)" },
+  waiting_assignment: { color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: Clock, label: "Menunggu Penugasan" },
+  assigned: { color: "bg-indigo-100 text-indigo-700 border-indigo-200", icon: Car, label: "Ditugaskan (Assigned)" },
+  in_progress: { color: "bg-purple-100 text-purple-700 border-purple-200", icon: MapPin, label: "Sedang Berjalan" },
   deny: { color: "bg-red-100 text-red-700 border-red-200", icon: AlertCircle, label: "Ditolak (Deny)" },
   cancelled: { color: "bg-slate-100 text-slate-700 border-slate-200", icon: Ban, label: "Dibatalkan (Cancelled)" },
   done: { color: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle2, label: "Selesai (Done)" },
@@ -60,6 +63,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   const [filterDivisi, setFilterDivisi] = useState<string>("all");
   const [filterKendaraan, setFilterKendaraan] = useState<string>("all");
   const [filterDriver, setFilterDriver] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -71,10 +75,10 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus, filterDivisi, filterKendaraan, filterDriver, search, dateFrom, dateTo, sortOrder, sortField]);
+  }, [filterStatus, filterDivisi, filterKendaraan, filterDriver, filterType, search, dateFrom, dateTo, sortOrder, sortField]);
 
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
-  const [actionModal, setActionModal] = useState<"assign" | "deny" | "done" | "delete" | "delete-all" | "bulk-delete" | null>(null);
+  const [actionModal, setActionModal] = useState<"assign" | "deny" | "done" | "delete" | "delete-all" | "bulk-delete" | "wait-assignment" | "start" | "grant" | null>(null);
   const [deleteAllConfirmText, setDeleteAllConfirmText] = useState("");
   const [liveLocation, setLiveLocation] = useState<{ latitude: number, longitude: number, speed: string, lastUpdated: string } | null>(null);
   const [isTrackingLoading, setIsTrackingLoading] = useState(false);
@@ -83,22 +87,19 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   const [selectedDriver, setSelectedDriver] = useState("");
   const [selectedKendaraan, setSelectedKendaraan] = useState("");
 
-  const busyDriverIds = new Set(
+  const busyDrivers = new Map(
     requests
-      .filter(r => (r.status === 'pending' || r.status === 'granted') && r.id !== selectedRequest?.id)
-      .map(r => r.driver?.id)
-      .filter(Boolean)
+      .filter(r => (r.status === 'assigned' || r.status === 'in_progress') && r.id !== selectedRequest?.id)
+      .filter(r => r.driver?.id)
+      .map(r => [r.driver.id, r.noForm])
   );
 
-  const busyKendaraanIds = new Set(
+  const busyKendaraan = new Map(
     requests
-      .filter(r => (r.status === 'pending' || r.status === 'granted') && r.id !== selectedRequest?.id)
-      .map(r => r.kendaraan?.id)
-      .filter(Boolean)
+      .filter(r => (r.status === 'assigned' || r.status === 'in_progress') && r.id !== selectedRequest?.id)
+      .filter(r => r.kendaraan?.id)
+      .map(r => [r.kendaraan.id, r.noForm])
   );
-
-  const availableDrivers = drivers.filter(d => !busyDriverIds.has(d.id));
-  const availableKendaraan = kendaraan.filter(k => !busyKendaraanIds.has(k.id));
   const [assignCatatan, setAssignCatatan] = useState("");
   const [alasanDeny, setAlasanDeny] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -202,6 +203,14 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
     processedRequests = processedRequests.filter(r => new Date(r.tglMulai) <= to);
   }
 
+  if (filterType !== "all") {
+    if (filterType === "manual") {
+      processedRequests = processedRequests.filter(r => !r.routineRequestId && !r.isRoutineParent);
+    } else if (filterType === "routine") {
+      processedRequests = processedRequests.filter(r => r.routineRequestId || r.isRoutineParent);
+    }
+  }
+
   const uniqueDivisi = Array.from(new Set(requests.map(r => r.divisi))).filter(Boolean);
 
   processedRequests.sort((a, b) => {
@@ -232,23 +241,41 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
     try {
       let endpoint = `/api/requests/${selectedRequest.id}/`;
       let body: any = {};
+      let method = 'PATCH';
 
-      if (actionModal === 'delete') {
-        endpoint = `/api/requests/${selectedRequest.id}`;
-      } else if (actionModal === 'assign') {
-        endpoint += 'assign';
-        body = { driverId: selectedDriver, kendaraanId: selectedKendaraan, catatan: assignCatatan };
-      } else if (actionModal === 'deny') {
-        endpoint += 'deny';
-        body = { alasanDeny };
-      } else if (actionModal === 'done') {
-        endpoint += 'done';
+      if (selectedRequest.isRoutineParent) {
+        if (actionModal === 'grant') {
+          endpoint = `/api/routine-requests/${selectedRequest.id}/approve`;
+          method = 'POST';
+        } else if (actionModal === 'delete') {
+          endpoint = `/api/routine-requests/${selectedRequest.id}`;
+          method = 'DELETE';
+        } else {
+          toast.error("Aksi ini tidak didukung untuk form rutin (parent)");
+          setIsProcessing(false);
+          return;
+        }
+      } else {
+        if (actionModal === 'delete') {
+          endpoint = `/api/requests/${selectedRequest.id}`;
+          method = 'DELETE';
+        } else if (actionModal === 'assign') {
+          endpoint += 'assign';
+          body = { driverId: selectedDriver, kendaraanId: selectedKendaraan, catatan: assignCatatan };
+        } else if (actionModal === 'deny') {
+          endpoint += 'deny';
+          body = { alasanDeny };
+        } else if (actionModal === 'done') {
+          endpoint += 'done';
+        } else if (actionModal === 'grant') {
+          endpoint += 'grant';
+        }
       }
 
       const res = await fetch(endpoint, {
-        method: actionModal === 'delete' ? 'DELETE' : 'PATCH',
+        method,
         headers: { "Content-Type": "application/json" },
-        body: actionModal !== 'delete' && Object.keys(body).length > 0 ? JSON.stringify(body) : undefined
+        body: method !== 'DELETE' && Object.keys(body).length > 0 ? JSON.stringify(body) : undefined
       });
 
       const data = await res.json();
@@ -295,19 +322,19 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      const pageIds = paginatedRequests.map(r => r.id);
+      const pageIds = paginatedRequests.map(r => r.isRoutineParent ? `routine-${r.id}` : String(r.id));
       setSelectedIds(prev => Array.from(new Set([...prev, ...pageIds])));
     } else {
-      const pageIds = paginatedRequests.map(r => r.id);
+      const pageIds = paginatedRequests.map(r => r.isRoutineParent ? `routine-${r.id}` : String(r.id));
       setSelectedIds(prev => prev.filter(id => !pageIds.includes(id)));
     }
   };
 
-  const handleSelectRow = (id: number, checked: boolean) => {
+  const handleSelectRow = (id: string, checked: boolean) => {
     if (checked) {
       setSelectedIds(prev => [...prev, id]);
     } else {
@@ -319,8 +346,13 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
     if (selectedIds.length === 0) return;
     setIsProcessing(true);
     try {
-      for (const id of selectedIds) {
-        await fetch(`/api/requests/${id}`, { method: 'DELETE' });
+      for (const strId of selectedIds) {
+        if (strId.startsWith('routine-')) {
+          const id = strId.replace('routine-', '');
+          await fetch(`/api/routine-requests/${id}`, { method: 'DELETE' });
+        } else {
+          await fetch(`/api/requests/${strId}`, { method: 'DELETE' });
+        }
       }
       toast.success(`${selectedIds.length} data berhasil dihapus`);
       setSelectedIds([]);
@@ -391,6 +423,9 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   const statTotal = requests.length;
   const statPending = requests.filter(r => r.status === 'pending').length;
   const statGranted = requests.filter(r => r.status === 'granted').length;
+  const statWaiting = requests.filter(r => r.status === 'waiting_assignment').length;
+  const statAssigned = requests.filter(r => r.status === 'assigned').length;
+  const statInProgress = requests.filter(r => r.status === 'in_progress').length;
   const statDone = requests.filter(r => r.status === 'done').length;
   const statDeny = requests.filter(r => r.status === 'deny').length;
   const statCancelled = requests.filter(r => r.status === 'cancelled').length;
@@ -691,11 +726,31 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                       <input 
                         type="checkbox" 
                         className="w-4 h-4 rounded border-indigo-400 text-indigo-900 focus:ring-indigo-500 bg-indigo-700 cursor-pointer"
-                        checked={paginatedRequests.length > 0 && paginatedRequests.every(r => selectedIds.includes(r.id))}
+                        checked={paginatedRequests.length > 0 && paginatedRequests.every(r => selectedIds.includes(r.isRoutineParent ? `routine-${r.id}` : String(r.id)))}
                         onChange={handleSelectAll}
                       />
                     </th>
                   )}
+                  <th className="p-5 align-middle">
+                    <div className="flex items-center gap-1.5 w-max">
+                      <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">Tipe</span>
+                      {filterType !== 'all' && (
+                        <span className="bg-indigo-500 text-white px-1.5 py-0.5 rounded text-[10px] font-bold max-w-[80px] truncate capitalize">{filterType}</span>
+                      )}
+                      <div className="relative flex items-center justify-center">
+                        <button onClick={() => setOpenDropdown(openDropdown === 'type' ? null : 'type')} className="focus:outline-none">
+                          <ChevronDown className="w-4 h-4 text-indigo-300 hover:text-white cursor-pointer" />
+                        </button>
+                        {openDropdown === 'type' && (
+                          <div className="absolute top-full mt-2 left-0 w-36 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden font-normal text-slate-700">
+                            <button onClick={() => { setFilterType('all'); setOpenDropdown(null); }} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${filterType === 'all' ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}>Semua Tipe</button>
+                            <button onClick={() => { setFilterType('manual'); setOpenDropdown(null); }} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${filterType === 'manual' ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}>Manual</button>
+                            <button onClick={() => { setFilterType('routine'); setOpenDropdown(null); }} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${filterType === 'routine' ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}>Rutin</button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </th>
                   <th className={readOnly ? "p-5 pl-6 align-middle" : "p-5 align-middle"}>
                     <div className="flex items-center gap-2 cursor-pointer group w-max" onClick={() => { if (sortField === 'noForm') setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc'); else { setSortField('noForm'); setSortOrder('desc'); } }}>
                       <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">No Form</span>
@@ -760,6 +815,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                       )}
                     </div>
                   </th>
+                  <th className="p-5 align-middle"><span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">Titik Jemput</span></th>
                   <th className="p-5 align-middle"><span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">Tujuan</span></th>
                   <th className="p-5 align-middle"><span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">Bukti</span></th>
                   <th className="p-5 align-middle">
@@ -839,7 +895,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               <tbody className="divide-y divide-slate-100">
                 {processedRequests.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="p-10 text-center text-slate-500 bg-white">
+                    <td colSpan={readOnly ? 9 : 10} className="p-10 text-center text-slate-500 bg-white">
                       <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
                       <h3 className="text-lg font-bold text-slate-700">Tidak ada permintaan</h3>
                     </td>
@@ -847,18 +903,23 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 ) : paginatedRequests.map(req => {
                   const status = statusConfig[req.status];
                   return (
-                    <tr key={req.id} className={`transition-colors ${selectedIds.includes(req.id) ? 'bg-indigo-50/70 hover:bg-indigo-100/70' : 'even:bg-slate-50 odd:bg-white hover:bg-slate-100'}`}>
+                    <tr key={req.isRoutineParent ? `routine-${req.id}` : req.id} className={`transition-colors ${selectedIds.includes(req.isRoutineParent ? `routine-${req.id}` : String(req.id)) ? 'bg-indigo-50/70 hover:bg-indigo-100/70' : 'even:bg-slate-50 odd:bg-white hover:bg-slate-100'}`}>
                       {!readOnly && (
                         <td className="p-5 pl-6 align-middle w-12">
                           <input 
                             type="checkbox" 
                             className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer"
-                            checked={selectedIds.includes(req.id)}
-                            onChange={(e) => handleSelectRow(req.id, e.target.checked)}
+                            checked={selectedIds.includes(req.isRoutineParent ? `routine-${req.id}` : String(req.id))}
+                            onChange={(e) => handleSelectRow(req.isRoutineParent ? `routine-${req.id}` : String(req.id), e.target.checked)}
                           />
                         </td>
                       )}
-                      <td className={readOnly ? "p-5 pl-6 font-bold text-slate-900" : "p-5 font-bold text-slate-900"}>{req.noForm}</td>
+                      <td className="p-5">
+                        <span className={`inline-flex items-center px-2 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider border ${req.isRoutineParent ? 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                          {req.isRoutineParent ? 'Rutin' : 'Manual'}
+                        </span>
+                      </td>
+                      <td className={readOnly ? "p-5 font-bold text-slate-900" : "p-5 font-bold text-slate-900"}>{req.noForm}</td>
                       <td className="p-5">
                         <p className="text-sm text-slate-600 font-medium">{formatDateTime(req.createdAt)}</p>
                       </td>
@@ -873,10 +934,15 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                         <p className="text-xs text-slate-500">s/d {formatDateTime(req.tglSelesai)}</p>
                       </td>
                       <td className="p-5">
+                        <p className="text-sm text-slate-700 line-clamp-2 max-w-[150px]" title={req.titikJemput || '-'}>{req.titikJemput || '-'}</p>
+                      </td>
+                      <td className="p-5">
                         <p className="text-sm text-slate-700 line-clamp-2 max-w-[200px]" title={req.tujuan}>{req.tujuan}</p>
                       </td>
                       <td className="p-5">
-                        {req.buktiFileUrl ? (
+                        {req.isRoutineParent ? (
+                          <span className="text-slate-300 text-xs">—</span>
+                        ) : req.buktiFileUrl ? (
                           <button
                             onClick={() => setBuktiModal(req.buktiFileUrl)}
                             className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 text-sm font-medium focus:outline-none"
@@ -888,14 +954,31 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                         )}
                       </td>
                       <td className="p-5">
-                        {req.driver ? (
+                        {req.isRoutineParent ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-xs font-bold text-fuchsia-700 bg-fuchsia-50 px-2 py-0.5 rounded-full inline-block w-max">
+                              {req.routineTotalDays ?? 0} jadwal
+                            </span>
+                            {req.status === 'pending' ? (
+                              <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded mt-0.5 inline-block w-max">
+                                Menunggu Disetujui
+                              </span>
+                            ) : req.routineDoneDays > 0 ? (
+                              <span className="text-[10px] text-slate-500 mt-0.5">
+                                {req.routineDoneDays}/{req.routineTotalDays} selesai
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : req.driver ? (
                           <p className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-1 rounded inline-block">{req.driver.nama}</p>
                         ) : (
                           <span className="text-slate-300">-</span>
                         )}
                       </td>
                       <td className="p-5">
-                        {req.kendaraan ? (
+                        {req.isRoutineParent ? (
+                          <span className="text-xs font-medium text-slate-500 capitalize">{req.routineRepeatType === 'daily' ? 'Setiap hari' : req.routineRepeatType === 'weekdays' ? 'Sen–Jum' : req.routineRepeatType === 'weekly' ? 'Mingguan' : req.routineRepeatType}</span>
+                        ) : req.kendaraan ? (
                           <p className="text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded inline-block">{req.kendaraan.jenis} ({req.kendaraan.nopol})</p>
                         ) : (
                           <span className="text-slate-300">-</span>
@@ -935,9 +1018,13 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                         <button
                           title="Detail"
                           onClick={async () => {
-                            const res = await fetch(`/api/requests/${req.id}`);
-                            const data = await res.json();
-                            if (data.success) setSelectedRequest(data.data);
+                            if (req.isRoutineParent) {
+                              window.location.href = `/dashboard/routine/${req.id}`;
+                            } else {
+                              const res = await fetch(`/api/requests/${req.id}`);
+                              const data = await res.json();
+                              if (data.success) setSelectedRequest(data.data);
+                            }
                           }}
                           className="p-2 bg-white text-slate-600 font-semibold border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-sm inline-flex items-center justify-center"
                         >
@@ -947,17 +1034,11 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                         {!readOnly && req.status === 'pending' && (
                           <>
                             <button
-                              title="Setujui"
-                              onClick={() => { 
-                                setSelectedRequest(req); 
-                                setSelectedDriver(""); 
-                                setSelectedKendaraan(""); 
-                                setAssignCatatan("");
-                                setActionModal('assign'); 
-                              }}
-                              className="p-2 bg-green-50 text-green-600 font-semibold border border-green-200 rounded-lg hover:bg-green-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
+                              title="Setujui (Grant)"
+                              onClick={() => { setSelectedRequest(req); setActionModal('grant'); }}
+                              className="p-2 bg-blue-50 text-blue-600 font-semibold border border-blue-200 rounded-lg hover:bg-blue-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
                             >
-                              <Check className="w-4 h-4" />
+                              <CheckCircle2 className="w-4 h-4" />
                             </button>
                             <button
                               title="Tolak"
@@ -968,10 +1049,10 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                             </button>
                           </>
                         )}
-                        {!readOnly && req.status === 'granted' && (
+                        {!readOnly && !req.isRoutineParent && (req.status === 'granted' || req.status === 'waiting_assignment') && (
                           <>
                             <button
-                              title="Tukar Driver/Kendaraan"
+                              title="Tugaskan Driver/Kendaraan"
                               onClick={() => { 
                                 setSelectedRequest(req); 
                                 setSelectedDriver(req.driver?.id?.toString() || ""); 
@@ -981,8 +1062,12 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                               }}
                               className="p-2 bg-indigo-50 text-indigo-600 font-semibold border border-indigo-200 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
                             >
-                              <RefreshCw className="w-4 h-4" />
+                              <Car className="w-4 h-4" />
                             </button>
+                          </>
+                        )}
+                        {!readOnly && !req.isRoutineParent && req.status === 'in_progress' && (
+                          <>
                             <button
                               title="Selesai"
                               onClick={() => { setSelectedRequest(req); setActionModal('done'); }}
@@ -1020,7 +1105,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   disabled={currentPage === 1}
                   className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
                 >
-                  Sebelumnnya
+                  Sebelumnya
                 </button>
                 <div className="flex gap-1 items-center">
                   {Array.from({ length: totalPages }).map((_, i) => (
@@ -1075,13 +1160,58 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 </div>
               </div>
 
+              {selectedRequest.routineRequestId && selectedRequest.routineRequest && (
+                <div>
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Informasi Jadwal Rutin</h3>
+                  <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/50 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-indigo-500 font-semibold uppercase tracking-wider mb-0.5">Series ID</p>
+                        <p className="font-bold text-slate-900 text-sm">RTN-{selectedRequest.routineRequestId}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-indigo-500 font-semibold uppercase tracking-wider mb-0.5">Tipe Request</p>
+                        <span className="inline-block px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-md uppercase tracking-wider">
+                          Rutin
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-indigo-500 font-semibold uppercase tracking-wider mb-0.5">Nama Jadwal</p>
+                      <p className="font-bold text-slate-900">{selectedRequest.routineRequest.title}</p>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-indigo-100/50 pt-3 mt-3">
+                      <div>
+                        <p className="text-xs text-indigo-500 font-semibold uppercase tracking-wider mb-0.5">Urutan Jadwal (Occurrence)</p>
+                        <p className="font-bold text-slate-900 text-sm">
+                          {(() => {
+                            const siblings = selectedRequest.routineRequest.requests || [];
+                            const index = siblings.findIndex((r: any) => r.id === selectedRequest.id);
+                            return index !== -1 ? `Hari ke-${index + 1} dari ${siblings.length}` : '-';
+                          })()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-indigo-500 font-semibold uppercase tracking-wider mb-0.5">Total Dihasilkan</p>
+                        <p className="font-bold text-slate-900 text-sm">{selectedRequest.routineRequest.requests?.length || 0} Tiket</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Jadwal & Tujuan</h3>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
                   <p className="font-bold text-slate-900 text-sm">
                     {formatDateTime(selectedRequest.tglMulai)} <span className="text-slate-400 font-normal mx-2">s/d</span> {formatDateTime(selectedRequest.tglSelesai)}
                   </p>
-                  <p className="text-slate-700">{selectedRequest.tujuan}</p>
+                  <p className="text-slate-700">
+                    <span className="font-semibold">Titik Jemput:</span> {selectedRequest.titikJemput || '-'}
+                  </p>
+                  <p className="text-slate-700">
+                    <span className="font-semibold">Titik Tujuan:</span> {selectedRequest.tujuan}
+                  </p>
                   <a
                     href={selectedRequest.buktiFileUrl}
                     target="_blank"
@@ -1159,11 +1289,11 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
       )}
 
       {/* Modal Aksi */}
-      {actionModal && actionModal !== 'delete-all' && (
+      {actionModal && !['delete-all', 'delete', 'bulk-delete'].includes(actionModal) && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
             <h3 className="text-xl font-bold text-slate-900 mb-4">
-              {actionModal === 'assign' ? (selectedRequest?.status === 'granted' ? 'Tukar Penugasan' : 'Setujui & Tugaskan') : actionModal === 'deny' ? 'Tolak Permintaan' : actionModal === 'delete' ? 'Hapus Permintaan' : 'Tandai Selesai'}
+              {actionModal === 'assign' ? 'Tugaskan Driver/Kendaraan' : actionModal === 'deny' ? 'Tolak Permintaan' : actionModal === 'delete' ? 'Hapus Permintaan' : actionModal === 'wait-assignment' ? 'Tandai Menunggu Penugasan' : actionModal === 'start' ? 'Mulai Perjalanan' : actionModal === 'grant' ? 'Setujui Permintaan' : 'Tandai Selesai'}
             </h3>
 
             <form onSubmit={handleAction}>
@@ -1198,16 +1328,22 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                             >
                               -- Pilih Driver --
                             </button>
-                            {availableDrivers.map(d => (
-                              <button
-                                key={d.id}
-                                type="button"
-                                onClick={() => { setSelectedDriver(d.id.toString()); setOpenDropdown(null); }}
-                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${selectedDriver === d.id.toString() ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}
-                              >
-                                {d.nama}
-                              </button>
-                            ))}
+                            {drivers.map(d => {
+                              const isBusy = d.requests && d.requests.length > 0;
+                              const busyNoForm = isBusy ? d.requests.map((r: any) => r.noForm).join(', ') : '';
+                              return (
+                                <button
+                                  key={d.id}
+                                  type="button"
+                                  disabled={isBusy}
+                                  onClick={() => { setSelectedDriver(d.id.toString()); setOpenDropdown(null); }}
+                                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex flex-col ${isBusy ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-75' : selectedDriver === d.id.toString() ? 'bg-indigo-50 text-indigo-700 font-bold' : 'hover:bg-indigo-50 hover:text-indigo-700'}`}
+                                >
+                                  <span>{d.nama}</span>
+                                  {isBusy && <span className="text-[10px] font-semibold text-slate-500 mt-0.5">Ditugaskan di: {busyNoForm}</span>}
+                                </button>
+                              );
+                            })}
                           </div>
                         </>
                       )}
@@ -1243,16 +1379,22 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                             >
                               -- Pilih Kendaraan --
                             </button>
-                            {availableKendaraan.map(k => (
-                              <button
-                                key={k.id}
-                                type="button"
-                                onClick={() => { setSelectedKendaraan(k.id.toString()); setOpenDropdown(null); }}
-                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${selectedKendaraan === k.id.toString() ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}
-                              >
-                                {k.jenis} - {k.nopol}
-                              </button>
-                            ))}
+                            {kendaraan.map(k => {
+                              const isBusy = k.requests && k.requests.length > 0;
+                              const busyNoForm = isBusy ? k.requests.map((r: any) => r.noForm).join(', ') : '';
+                              return (
+                                <button
+                                  key={k.id}
+                                  type="button"
+                                  disabled={isBusy}
+                                  onClick={() => { setSelectedKendaraan(k.id.toString()); setOpenDropdown(null); }}
+                                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex flex-col ${isBusy ? 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-75' : selectedKendaraan === k.id.toString() ? 'bg-indigo-50 text-indigo-700 font-bold' : 'hover:bg-indigo-50 hover:text-indigo-700'}`}
+                                >
+                                  <span>{k.jenis} - {k.nopol}</span>
+                                  {isBusy && <span className="text-[10px] font-semibold text-slate-500 mt-0.5">Ditugaskan di: {busyNoForm}</span>}
+                                </button>
+                              );
+                            })}
                           </div>
                         </>
                       )}
@@ -1288,6 +1430,17 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               {actionModal === 'done' && (
                 <p className="text-slate-600 mb-6">Apakah Anda yakin menandai permintaan ini sebagai selesai?</p>
               )}
+              {actionModal === 'grant' && (
+                <div className="mb-6 p-4 bg-blue-50 text-blue-800 rounded-xl border border-blue-200">
+                  Apakah Anda yakin ingin menyetujui permintaan ini?
+                </div>
+              )}
+              {actionModal === 'wait-assignment' && (
+                <p className="text-slate-600 mb-6">Tandai permintaan ini sebagai Menunggu Penugasan?</p>
+              )}
+              {actionModal === 'start' && (
+                <p className="text-slate-600 mb-6">Mulai perjalanan untuk form ini sekarang?</p>
+              )}
 
               <div className="flex justify-end gap-3">
                 <button
@@ -1302,10 +1455,13 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   disabled={isProcessing}
                   className={`px-6 py-2 text-white font-bold rounded-full transition-colors disabled:opacity-50 ${actionModal === 'deny' ? 'bg-red-600 hover:bg-red-700' :
                       actionModal === 'done' ? 'bg-green-600 hover:bg-green-700' :
+                      actionModal === 'start' ? 'bg-purple-600 hover:bg-purple-700' :
+                      actionModal === 'wait-assignment' ? 'bg-yellow-600 hover:bg-yellow-700' :
+                      actionModal === 'grant' ? 'bg-blue-600 hover:bg-blue-700' :
                         'bg-indigo-600 hover:bg-indigo-700'
                     }`}
                 >
-                  {isProcessing ? "Menyimpan..." : actionModal === 'assign' ? 'Setujui' : actionModal === 'deny' ? 'Tolak' : 'Selesai'}
+                  {isProcessing ? "Menyimpan..." : actionModal === 'assign' ? 'Tugaskan' : actionModal === 'deny' ? 'Tolak' : actionModal === 'start' ? 'Mulai' : actionModal === 'wait-assignment' ? 'Tandai' : actionModal === 'grant' ? 'Setujui' : 'Selesai'}
                 </button>
               </div>
             </form>
