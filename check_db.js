@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function main() { const reqs = await prisma.request.findMany({ where: { routineRequestId: { not: null } } }); console.log('Routine child requests:', reqs.length); } main().catch(console.error).finally(() = 

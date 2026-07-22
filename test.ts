@@ -1,0 +1,1 @@
+import { generateChildRequests } from './lib/routineRequests'; async function test() { try { await generateChildRequests(10, 1); console.log('success'); } catch (e) { console.error('Error:', e); } } test();
