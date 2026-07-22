@@ -7,8 +7,7 @@ import { prisma } from "@/lib/prisma";
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    const userRole = (session.user as any).role;
-    if (!session || userRole === "staff_transport") {
+    if (!session || !session.user || (session.user as any).role === "staff_transport") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
