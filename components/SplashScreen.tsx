@@ -43,8 +43,7 @@ export default function SplashScreen({ isVisible, type }: SplashScreenProps) {
                 alt="Logo" 
                 width={140} 
                 height={140} 
-                className="object-contain" 
-                style={{ width: "auto", height: "auto" }}
+                className="object-contain w-auto h-[140px]" 
                 priority 
               />
             </div>
