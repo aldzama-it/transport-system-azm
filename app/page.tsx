@@ -3,11 +3,27 @@
 import { useState } from "react";
 import FormView from "@/components/FormView";
 import TrackingView from "@/components/TrackingView";
-import { FileEdit, Search } from "lucide-react";
+import RoutineRequestClient from "@/components/RoutineRequestClient";
+import { FileEdit, Search, CalendarPlus } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect } from "react";
 
-export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<"form" | "track">("form");
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"form" | "track" | "routine">("form");
   const [trackingQuery, setTrackingQuery] = useState("");
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    const noForm = searchParams.get("noForm");
+
+    if (tab === "track") {
+      setActiveTab("track");
+    }
+    if (noForm) {
+      setTrackingQuery(noForm);
+    }
+  }, [searchParams]);
 
   const handleSwitchToTracking = (noForm?: string) => {
     if (noForm) {
@@ -43,19 +59,44 @@ export default function HomePage() {
             <Search className="w-4 h-4" />
             Lacak Status
           </button>
+          <button
+            onClick={() => setActiveTab("routine")}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
+              activeTab === "routine"
+                ? "bg-white text-indigo-700 shadow-sm"
+                : "text-slate-500 hover:text-indigo-600 hover:bg-slate-200/50"
+            }`}
+          >
+            <CalendarPlus className="w-4 h-4" />
+            Ajukan Rutin
+          </button>
         </div>
       </div>
 
       {/* Render Active View */}
-      {activeTab === "form" ? (
+      {activeTab === "form" && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <FormView onSwitchToTracking={handleSwitchToTracking} />
         </div>
-      ) : (
+      )}
+      {activeTab === "track" && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <TrackingView initialSearchQuery={trackingQuery} />
         </div>
       )}
+      {activeTab === "routine" && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <RoutineRequestClient />
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Memuat...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }

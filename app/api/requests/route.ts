@@ -5,10 +5,13 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { RequestStatus } from "@prisma/client";
 
+export const dynamic = 'force-dynamic';
+
 const createRequestSchema = z.object({
   namaPemohon: z.string().min(1, "Nama pemohon wajib diisi"),
   divisi: z.string().min(1, "Divisi wajib diisi"),
-  tujuan: z.string().min(1, "Tujuan wajib diisi"),
+  titikJemput: z.string().min(1, "Titik jemput wajib diisi"),
+  tujuan: z.string().min(1, "Titik tujuan wajib diisi"),
   tglMulai: z.string().datetime({ offset: true }).or(z.string()),
   tglSelesai: z.string().datetime({ offset: true }).or(z.string()),
 });
@@ -19,6 +22,7 @@ export async function POST(req: NextRequest) {
     const data = {
       namaPemohon: formData.get("namaPemohon") as string,
       divisi: formData.get("divisi") as string,
+      titikJemput: formData.get("titikJemput") as string,
       tujuan: formData.get("tujuan") as string,
       tglMulai: formData.get("tglMulai") as string,
       tglSelesai: formData.get("tglSelesai") as string,
@@ -50,6 +54,7 @@ export async function POST(req: NextRequest) {
     const result = await createNewRequest({
       namaPemohon: data.namaPemohon,
       divisi: data.divisi,
+      titikJemput: data.titikJemput,
       tujuan: data.tujuan,
       tglMulai: new Date(data.tglMulai),
       tglSelesai: new Date(data.tglSelesai),
@@ -76,8 +81,98 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: request ? [request] : [] });
     }
 
-    const requests = await getAllRequests(search, status);
-    return NextResponse.json({ success: true, data: requests });
+    const { prisma } = await import("@/lib/prisma");
+    const now = new Date();
+
+    // Lakukan lazy evaluation untuk status assigned -> in_progress (hanya manual request)
+    const assignedRequests = await prisma.request.findMany({
+      where: {
+        status: "assigned",
+        routineRequestId: null,  // exclude child routine
+        tglMulai: { lte: now }
+      },
+      select: { id: true }
+    });
+
+    if (assignedRequests.length > 0) {
+      await prisma.$transaction(async (tx) => {
+        for (const req of assignedRequests) {
+          await tx.request.update({
+            where: { id: req.id },
+            data: { status: "in_progress" }
+          });
+          await tx.requestHistory.create({
+            data: {
+              requestId: req.id,
+              status: "in_progress",
+              catatan: "Perjalanan dimulai otomatis sesuai jadwal",
+            }
+          });
+        }
+      });
+    }
+
+    // Check if we are fetching for calendar
+    const type = searchParams.get("type");
+    const isCalendar = type === "calendar";
+
+    const requests = await getAllRequests(search, status, isCalendar);
+
+    // Fetch routine requests as well
+    const { getAllRoutineRequests, calculateExpectedDays } = await import("@/lib/routineRequests");
+    const routineRequests = await getAllRoutineRequests();
+
+    // Map routine requests to look like regular requests for the dashboard
+    let mappedRoutines = routineRequests.map((r: any) => {
+      let mappedStatus = r.status; // pending, deny, cancelled stay the same
+
+      const expectedDays = calculateExpectedDays(r.startDate, r.endDate, r.repeatType);
+      const actualDays = r.requests?.length || 0;
+      const totalDays = actualDays > 0 ? actualDays : expectedDays;
+      const grantedDays = r.requests?.filter((req: any) => ['granted', 'assigned', 'in_progress', 'done'].includes(req.status)).length || 0;
+      const doneDays = r.requests?.filter((req: any) => req.status === 'done').length || 0;
+
+      if (r.status === "active") {
+        if (actualDays > 0 && doneDays === actualDays) {
+          mappedStatus = "done";
+        } else {
+          mappedStatus = "in_progress";
+        }
+      }
+
+      return {
+        id: r.id,
+        isRoutineParent: true,
+        noForm: r.noForm || "-",
+        namaPemohon: r.requester,
+        divisi: r.divisi,
+        tujuan: r.title,
+        tglMulai: r.startDate,
+        tglSelesai: r.endDate,
+        status: mappedStatus,
+        createdAt: r.createdAt,
+        driver: null,
+        kendaraan: null,
+        history: [],
+        routineRequestId: null,
+        // Ringkasan jadwal anak
+        routineTotalDays: totalDays,
+        routineDoneDays: doneDays,
+        routineGrantedDays: grantedDays,
+        routineRepeatType: r.repeatType,
+      };
+    });
+
+    if (status) {
+      mappedRoutines = mappedRoutines.filter((r: any) => r.status === status);
+    }
+
+    // Combine and sort by createdAt desc
+    const combined = [...requests, ...mappedRoutines].sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    return NextResponse.json({ success: true, data: combined });
   } catch (error: any) {
     return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
   }
@@ -89,13 +184,13 @@ export async function DELETE(req: NextRequest) {
     const { authOptions } = await import("@/app/api/auth/[...nextauth]/route");
     const session = await getServerSession(authOptions);
     const userRole = (session?.user as any)?.role;
-    
+
     if (!session || userRole === "staff_transport") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { prisma } = await import("@/lib/prisma");
-    
+
     // RequestHistory will be cascaded automatically by prisma if schema is set up, 
     // but just to be safe, delete them first or rely on cascade. 
     // Schema has: request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)

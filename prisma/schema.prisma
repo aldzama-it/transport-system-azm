@@ -22,9 +22,21 @@ enum Role {
 enum RequestStatus {
   pending
   granted
+  waiting_assignment
+  assigned
+  in_progress
   deny
   cancelled
   done
+}
+
+enum RoutineStatus {
+  pending
+  active
+  paused
+  completed
+  cancelled
+  deny
 }
 
 model StaffAkun {
@@ -60,6 +72,7 @@ model Request {
   noForm        String          @unique
   namaPemohon   String
   divisi        String
+  titikJemput   String?         @db.Text
   tujuan        String          @db.Text
   tglMulai      DateTime?
   tglSelesai    DateTime?
@@ -75,6 +88,9 @@ model Request {
   updatedAt     DateTime        @updatedAt
   history       RequestHistory[]
 
+  routineRequestId Int?
+  routineRequest   RoutineRequest? @relation(fields: [routineRequestId], references: [id])
+
   @@index([status])
 }
 
@@ -87,4 +103,28 @@ model RequestHistory {
   status    RequestStatus
   catatan   String?       @db.Text
   createdAt DateTime      @default(now())
+}
+
+model RoutineRequest {
+  id            Int             @id @default(autoincrement())
+  noForm        String?         @unique
+  title         String
+  requester     String
+  divisi        String
+  project       String?
+  pickup        String?         @db.Text
+  destination   String          @db.Text
+  startDate     DateTime
+  endDate       DateTime
+  departureTime String
+  returnTime    String
+  repeatType    String
+  notes         String?         @db.Text
+  status        RoutineStatus   @default(pending)
+  buktiFileUrl  String?
+
+  requests      Request[]
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 }

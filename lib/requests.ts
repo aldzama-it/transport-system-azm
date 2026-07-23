@@ -5,13 +5,14 @@ import { RequestStatus } from "@prisma/client";
 
 const TIMEZONE = "Asia/Jakarta";
 
-export async function generateNoForm() {
+export async function generateNoForm(tx?: any) {
+  const db = tx || prisma;
   const now = toZonedTime(new Date(), TIMEZONE);
   const monthStr = String(now.getMonth() + 1).padStart(3, '0');
   const prefix = `AZM-FRM-405-005-${monthStr}`;
   
   // Find the last request for this month
-  const lastRequest = await prisma.request.findFirst({
+  const lastRequest = await db.request.findFirst({
     where: {
       noForm: {
         startsWith: prefix
@@ -22,16 +23,34 @@ export async function generateNoForm() {
     }
   });
 
-  let nextSequence = 1;
-  if (lastRequest) {
-    const parts = lastRequest.noForm.split('-');
-    const lastSequenceStr = parts[5];
-    const lastSequence = parseInt(lastSequenceStr, 10);
-    if (!isNaN(lastSequence)) {
-      nextSequence = lastSequence + 1;
+  const lastRoutineRequest = await db.routineRequest.findFirst({
+    where: {
+      noForm: {
+        startsWith: prefix
+      }
+    },
+    orderBy: {
+      noForm: 'desc'
     }
+  });
+
+  let maxSequence = 0;
+
+  if (lastRequest && lastRequest.noForm) {
+    const parts = lastRequest.noForm.split('-');
+    const seqStr = parts[5];
+    const seq = parseInt(seqStr, 10);
+    if (!isNaN(seq) && seq > maxSequence) maxSequence = seq;
   }
 
+  if (lastRoutineRequest && lastRoutineRequest.noForm) {
+    const parts = lastRoutineRequest.noForm.split('-');
+    const seqStr = parts[5];
+    const seq = parseInt(seqStr, 10);
+    if (!isNaN(seq) && seq > maxSequence) maxSequence = seq;
+  }
+
+  const nextSequence = maxSequence + 1;
   const sequenceStr = nextSequence.toString().padStart(3, '0');
   return `${prefix}-${sequenceStr}`;
 }
@@ -39,6 +58,7 @@ export async function generateNoForm() {
 export type CreateRequestData = {
   namaPemohon: string;
   divisi: string;
+  titikJemput?: string;
   tujuan: string;
   tglMulai: Date;
   tglSelesai: Date;
@@ -54,6 +74,7 @@ export async function createNewRequest(data: CreateRequestData) {
         noForm,
         namaPemohon: data.namaPemohon,
         divisi: data.divisi,
+        titikJemput: data.titikJemput || null,
         tujuan: data.tujuan,
         tglMulai: data.tglMulai,
         tglSelesai: data.tglSelesai,
@@ -72,9 +93,11 @@ export async function createNewRequest(data: CreateRequestData) {
   });
 }
 
-export async function getAllRequests(search?: string, status?: RequestStatus) {
+export async function getAllRequests(search?: string, status?: RequestStatus, isCalendar: boolean = false) {
   return await prisma.request.findMany({
     where: {
+      // Exclude child requests dari routine jika bukan untuk kalender
+      routineRequestId: isCalendar ? undefined : null,
       status: status ? status : undefined,
       OR: search ? [
         { noForm: { contains: search } },
@@ -101,6 +124,14 @@ export async function getRequestById(id: number) {
       history: {
         include: { staff: true },
         orderBy: { createdAt: 'desc' }
+      },
+      routineRequest: {
+        include: {
+          requests: {
+            select: { id: true },
+            orderBy: { tglMulai: 'asc' }
+          }
+        }
       }
     }
   });
@@ -123,7 +154,7 @@ export async function getRequestByNoForm(noForm: string) {
 export async function assignRequest(id: number, staffId: number, driverId: number, kendaraanId: number, catatan?: string) {
   return await prisma.$transaction(async (tx) => {
     // Check if driver is assigned to another active request
-    const activeStatuses = [RequestStatus.pending, RequestStatus.granted];
+    const activeStatuses = [RequestStatus.pending, RequestStatus.granted, RequestStatus.waiting_assignment, RequestStatus.assigned, RequestStatus.in_progress];
     const existingDriverReq = await tx.request.findFirst({
       where: { driverId, status: { in: activeStatuses }, id: { not: id } }
     });
@@ -142,14 +173,71 @@ export async function assignRequest(id: number, staffId: number, driverId: numbe
     const req = await tx.request.update({
       where: { id },
       data: {
-        status: RequestStatus.granted,
+        status: RequestStatus.assigned,
         driverId,
         kendaraanId,
         history: {
           create: {
-            status: RequestStatus.granted,
+            status: RequestStatus.assigned,
             staffId,
             catatan: catatan ? catatan : "Driver dan kendaraan di-assign"
+          }
+        }
+      }
+    });
+    return req;
+  });
+}
+
+export async function grantRequest(id: number, staffId: number) {
+  return await prisma.$transaction(async (tx) => {
+    const req = await tx.request.update({
+      where: { id },
+      data: {
+        status: RequestStatus.granted,
+        history: {
+          create: {
+            status: RequestStatus.granted,
+            staffId,
+            catatan: "Permintaan disetujui"
+          }
+        }
+      }
+    });
+    return req;
+  });
+}
+
+export async function waitAssignmentRequest(id: number, staffId: number) {
+  return await prisma.$transaction(async (tx) => {
+    const req = await tx.request.update({
+      where: { id },
+      data: {
+        status: RequestStatus.waiting_assignment,
+        history: {
+          create: {
+            status: RequestStatus.waiting_assignment,
+            staffId,
+            catatan: "Menunggu penugasan driver dan kendaraan"
+          }
+        }
+      }
+    });
+    return req;
+  });
+}
+
+export async function startProgressRequest(id: number, staffId: number) {
+  return await prisma.$transaction(async (tx) => {
+    const req = await tx.request.update({
+      where: { id },
+      data: {
+        status: RequestStatus.in_progress,
+        history: {
+          create: {
+            status: RequestStatus.in_progress,
+            staffId,
+            catatan: "Perjalanan dimulai"
           }
         }
       }

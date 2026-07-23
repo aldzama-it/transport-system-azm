@@ -1,3 +1,15 @@
+/**
+ * @jest-environment node
+ */
+jest.mock('next-auth', () => {
+  return function NextAuth() { return {} };
+});
+jest.mock('next-auth/next', () => ({
+  getServerSession: jest.fn().mockResolvedValue({
+    user: { id: 1, name: 'Admin', role: 'admin' }
+  })
+}));
+
 import { GET, POST } from '@/app/api/kendaraan/route';
 import { PUT, DELETE } from '@/app/api/kendaraan/[id]/route';
 import { prisma } from '@/lib/prisma';

@@ -9,6 +9,9 @@ import { format } from "date-fns";
 const statusConfig: Record<string, { color: string, icon: any, label: string }> = {
   pending: { color: "bg-amber-100 text-amber-700 border-amber-200", icon: Clock, label: "Pending" },
   granted: { color: "bg-blue-100 text-blue-700 border-blue-200", icon: CheckCircle2, label: "Disetujui (Granted)" },
+  waiting_assignment: { color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: Clock, label: "Menunggu Penugasan" },
+  assigned: { color: "bg-indigo-100 text-indigo-700 border-indigo-200", icon: Car, label: "Ditugaskan (Assigned)" },
+  in_progress: { color: "bg-purple-100 text-purple-700 border-purple-200", icon: MapPin, label: "Sedang Berjalan" },
   deny: { color: "bg-red-100 text-red-700 border-red-200", icon: AlertCircle, label: "Ditolak (Deny)" },
   cancelled: { color: "bg-slate-100 text-slate-700 border-slate-200", icon: Ban, label: "Dibatalkan (Cancelled)" },
   done: { color: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle2, label: "Selesai (Done)" },

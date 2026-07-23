@@ -6,7 +6,15 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 export async function GET() {
   try {
     const kendaraan = await prisma.kendaraan.findMany({
-      orderBy: { jenis: 'asc' }
+      orderBy: { jenis: 'asc' },
+      include: {
+        requests: {
+          where: {
+            status: { in: ['pending', 'granted', 'waiting_assignment', 'assigned', 'in_progress'] }
+          },
+          select: { noForm: true }
+        }
+      }
     });
     return NextResponse.json({ success: true, data: kendaraan });
   } catch (error: any) {
