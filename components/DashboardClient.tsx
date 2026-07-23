@@ -78,7 +78,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   }, [filterStatus, filterDivisi, filterKendaraan, filterDriver, filterType, search, dateFrom, dateTo, sortOrder, sortField]);
 
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
-  const [actionModal, setActionModal] = useState<"assign" | "deny" | "done" | "delete" | "delete-all" | "bulk-delete" | "wait-assignment" | "start" | "grant" | null>(null);
+  const [actionModal, setActionModal] = useState<"assign" | "deny" | "done" | "delete" | "delete-all" | "bulk-delete" | "wait-assignment" | "start" | "grant" | "cancel" | null>(null);
   const [deleteAllConfirmText, setDeleteAllConfirmText] = useState("");
   const [liveLocation, setLiveLocation] = useState<{ latitude: number, longitude: number, speed: string, lastUpdated: string } | null>(null);
   const [isTrackingLoading, setIsTrackingLoading] = useState(false);
@@ -102,6 +102,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
   );
   const [assignCatatan, setAssignCatatan] = useState("");
   const [alasanDeny, setAlasanDeny] = useState("");
+  const [alasanCancel, setAlasanCancel] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [buktiModal, setBuktiModal] = useState<string | null>(null);
 
@@ -269,6 +270,9 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
           endpoint += 'done';
         } else if (actionModal === 'grant') {
           endpoint += 'grant';
+        } else if (actionModal === 'cancel') {
+          endpoint += 'cancel';
+          body = { alasanCancel };
         }
       }
 
@@ -285,6 +289,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
         setSelectedRequest(null);
         setAssignCatatan("");
         setAlasanDeny("");
+        setAlasanCancel("");
         fetchData();
       } else {
         toast.error(data.error || "Gagal menyimpan");
@@ -1066,7 +1071,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                             </button>
                           </>
                         )}
-                        {!readOnly && !req.isRoutineParent && req.status === 'in_progress' && (
+                        {!readOnly && !req.isRoutineParent && (req.status === 'in_progress' || req.status === 'assigned') && (
                           <>
                             <button
                               title="Selesai"
@@ -1076,6 +1081,15 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                               <CheckSquare className="w-4 h-4" />
                             </button>
                           </>
+                        )}
+                        {!readOnly && !req.isRoutineParent && (req.status === 'granted' || req.status === 'assigned' || req.status === 'waiting_assignment' || req.status === 'in_progress') && (
+                          <button
+                            title="Batalkan"
+                            onClick={() => { setSelectedRequest(req); setActionModal('cancel'); }}
+                            className="p-2 bg-red-50 text-red-600 font-semibold border border-red-200 rounded-lg hover:bg-red-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
+                          >
+                            <Ban className="w-4 h-4" />
+                          </button>
                         )}
                         {!readOnly && (
                           <button
@@ -1293,7 +1307,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
             <h3 className="text-xl font-bold text-slate-900 mb-4">
-              {actionModal === 'assign' ? 'Tugaskan Driver/Kendaraan' : actionModal === 'deny' ? 'Tolak Permintaan' : actionModal === 'delete' ? 'Hapus Permintaan' : actionModal === 'wait-assignment' ? 'Tandai Menunggu Penugasan' : actionModal === 'start' ? 'Mulai Perjalanan' : actionModal === 'grant' ? 'Setujui Permintaan' : 'Tandai Selesai'}
+              {actionModal === 'assign' ? 'Tugaskan Driver/Kendaraan' : actionModal === 'deny' ? 'Tolak Permintaan' : actionModal === 'delete' ? 'Hapus Permintaan' : actionModal === 'wait-assignment' ? 'Tandai Menunggu Penugasan' : actionModal === 'start' ? 'Mulai Perjalanan' : actionModal === 'grant' ? 'Setujui Permintaan' : actionModal === 'cancel' ? 'Batalkan Permintaan' : 'Tandai Selesai'}
             </h3>
 
             <form onSubmit={handleAction}>
@@ -1426,6 +1440,18 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   />
                 </div>
               )}
+              {actionModal === 'cancel' && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Alasan Pembatalan</label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={alasanCancel}
+                    onChange={(e) => setAlasanCancel(e.target.value)}
+                    className="block w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 bg-slate-50 resize-none"
+                  />
+                </div>
+              )}
 
               {actionModal === 'done' && (
                 <p className="text-slate-600 mb-6">Apakah Anda yakin menandai permintaan ini sebagai selesai?</p>
@@ -1453,7 +1479,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className={`px-6 py-2 text-white font-bold rounded-full transition-colors disabled:opacity-50 ${actionModal === 'deny' ? 'bg-red-600 hover:bg-red-700' :
+                  className={`px-6 py-2 text-white font-bold rounded-full transition-colors disabled:opacity-50 ${actionModal === 'deny' || actionModal === 'cancel' ? 'bg-red-600 hover:bg-red-700' :
                       actionModal === 'done' ? 'bg-green-600 hover:bg-green-700' :
                       actionModal === 'start' ? 'bg-purple-600 hover:bg-purple-700' :
                       actionModal === 'wait-assignment' ? 'bg-yellow-600 hover:bg-yellow-700' :
@@ -1461,7 +1487,7 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                         'bg-indigo-600 hover:bg-indigo-700'
                     }`}
                 >
-                  {isProcessing ? "Menyimpan..." : actionModal === 'assign' ? 'Tugaskan' : actionModal === 'deny' ? 'Tolak' : actionModal === 'start' ? 'Mulai' : actionModal === 'wait-assignment' ? 'Tandai' : actionModal === 'grant' ? 'Setujui' : 'Selesai'}
+                  {isProcessing ? "Menyimpan..." : actionModal === 'assign' ? 'Tugaskan' : actionModal === 'deny' ? 'Tolak' : actionModal === 'cancel' ? 'Batalkan' : actionModal === 'start' ? 'Mulai' : actionModal === 'wait-assignment' ? 'Tandai' : actionModal === 'grant' ? 'Setujui' : 'Selesai'}
                 </button>
               </div>
             </form>
