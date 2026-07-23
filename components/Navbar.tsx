@@ -14,8 +14,8 @@ export default async function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo - Left */}
           <Link href="/" className="flex items-center space-x-2.5 text-slate-800 hover:text-indigo-700 transition">
-            <div className="flex items-center justify-center">
-              <Image src="/Symbol.png" alt="Logo" width={64} height={64} className="object-contain" style={{ width: "auto", height: "auto" }} />
+            <div className="flex items-center justify-center shrink-0">
+              <Image src="/Symbol.png" alt="Logo" width={64} height={64} className="object-contain w-auto h-16" />
             </div>
             <span className="hidden sm:inline font-extrabold text-xl tracking-tight">Transport Aldzama</span>
           </Link>
