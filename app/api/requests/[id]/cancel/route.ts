@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Permintaan tidak ditemukan" }, { status: 404 });
     }
 
-    if (existingReq.status !== "pending" && existingReq.status !== "granted") {
+    if (!["pending", "granted", "waiting_assignment", "assigned", "in_progress"].includes(existingReq.status)) {
       return NextResponse.json({ error: "Permintaan ini tidak dapat dibatalkan" }, { status: 400 });
     }
 
