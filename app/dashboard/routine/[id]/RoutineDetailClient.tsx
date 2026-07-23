@@ -56,12 +56,13 @@ export default function RoutineDetailClient({ routineId, readOnly }: RoutineDeta
   const [drivers, setDrivers] = useState<any[]>([]);
   const [kendaraan, setKendaraan] = useState<any[]>([]);
   
-  const [actionModal, setActionModal] = useState<'assign' | null>(null);
+  const [actionModal, setActionModal] = useState<'assign' | 'cancel' | null>(null);
   const [selectedChild, setSelectedChild] = useState<any>(null);
   
   const [selectedDriver, setSelectedDriver] = useState<string>("");
   const [selectedKendaraan, setSelectedKendaraan] = useState<string>("");
   const [assignCatatan, setAssignCatatan] = useState<string>("");
+  const [cancelCatatan, setCancelCatatan] = useState<string>("");
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -110,6 +111,34 @@ export default function RoutineDetailClient({ routineId, readOnly }: RoutineDeta
       }
     } catch (e) {
       toast.error("Terjadi kesalahan");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleCancel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedChild || !cancelCatatan.trim()) return;
+    setIsProcessing(true);
+
+    try {
+      const res = await fetch(`/api/requests/${selectedChild.id}/cancel`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alasanCancel: cancelCatatan }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Jadwal harian berhasil dibatalkan");
+        setActionModal(null);
+        setSelectedChild(null);
+        setCancelCatatan("");
+        fetchData();
+      } else {
+        toast.error(data.error || "Gagal membatalkan jadwal");
+      }
+    } catch (e) {
+      toast.error("Terjadi kesalahan sistem");
     } finally {
       setIsProcessing(false);
     }
@@ -348,35 +377,48 @@ export default function RoutineDetailClient({ routineId, readOnly }: RoutineDeta
                         {req.isPreview ? (
                           <span className="text-xs font-semibold text-slate-400">Draft</span>
                         ) : (
-                          <>
-                            {(req.status === 'pending' || req.status === 'waiting_assignment' || req.status === 'granted') && (
-                              <button
-                                title="Tugaskan Driver/Kendaraan"
-                                onClick={() => { 
-                                  setSelectedChild(req); 
-                                  setSelectedDriver(req.driver?.id?.toString() || ""); 
-                                  setSelectedKendaraan(req.kendaraan?.id?.toString() || ""); 
-                                  setAssignCatatan("");
-                                  setActionModal('assign'); 
-                                }}
-                                className="p-2 bg-indigo-50 text-indigo-600 font-semibold border border-indigo-200 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
-                              >
-                                <Car className="w-4 h-4 mr-2" /> Assign
-                              </button>
-                            )}
-                            {(req.status === 'assigned' || req.status === 'done') && (
-                              <span className="text-xs font-semibold text-slate-400">Ter-assign</span>
-                            )}
-                            {req.status === 'in_progress' && (
-                              <button
-                                title="Selesai"
-                                onClick={() => handleDone(req.id)}
-                                className="p-2 bg-green-50 text-green-600 font-semibold border border-green-200 rounded-lg hover:bg-green-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
-                              >
-                                <CheckCircle2 className="w-4 h-4 mr-2" /> Selesai
-                              </button>
-                            )}
-                          </>
+                            <div className="flex justify-end gap-2">
+                              {(req.status === 'pending' || req.status === 'waiting_assignment' || req.status === 'granted') && (
+                                <button
+                                  title="Tugaskan Driver/Kendaraan"
+                                  onClick={() => { 
+                                    setSelectedChild(req); 
+                                    setSelectedDriver(req.driver?.id?.toString() || ""); 
+                                    setSelectedKendaraan(req.kendaraan?.id?.toString() || ""); 
+                                    setAssignCatatan("");
+                                    setActionModal('assign'); 
+                                  }}
+                                  className="p-2 bg-indigo-50 text-indigo-600 font-semibold border border-indigo-200 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
+                                >
+                                  <Car className="w-4 h-4 mr-2" /> Assign
+                                </button>
+                              )}
+                              {(req.status === 'assigned' || req.status === 'in_progress') && (
+                                <button
+                                  title="Selesai"
+                                  onClick={() => handleDone(req.id)}
+                                  className="p-2 bg-green-50 text-green-600 font-semibold border border-green-200 rounded-lg hover:bg-green-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
+                                >
+                                  <CheckCircle2 className="w-4 h-4 mr-2" /> Selesai
+                                </button>
+                              )}
+                              {(req.status === 'pending' || req.status === 'waiting_assignment' || req.status === 'granted' || req.status === 'assigned' || req.status === 'in_progress') && (
+                                <button
+                                  title="Batalkan"
+                                  onClick={() => {
+                                    setSelectedChild(req);
+                                    setCancelCatatan("");
+                                    setActionModal('cancel');
+                                  }}
+                                  className="p-2 bg-red-50 text-red-600 font-semibold border border-red-200 rounded-lg hover:bg-red-600 hover:text-white transition-colors shadow-sm inline-flex items-center justify-center"
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                              {req.status === 'done' && (
+                                <span className="text-xs font-semibold text-slate-400">Selesai</span>
+                              )}
+                            </div>
                         )}
                       </td>
                     )}
@@ -387,6 +429,59 @@ export default function RoutineDetailClient({ routineId, readOnly }: RoutineDeta
           </table>
         </div>
       </div>
+
+      {/* Modal Cancel */}
+      {actionModal === 'cancel' && selectedChild && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setActionModal(null)} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-3xl w-full max-w-lg shadow-2xl relative overflow-hidden"
+          >
+            <div className="p-6 md:p-8 border-b border-slate-100 bg-red-50/50">
+              <h2 className="text-2xl font-black text-slate-900">Batalkan Jadwal</h2>
+              <p className="text-sm text-slate-500 mt-1">Form: <span className="font-semibold">{selectedChild.noForm}</span></p>
+            </div>
+            
+            <form onSubmit={handleCancel} className="p-6 md:p-8 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Alasan Pembatalan</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={cancelCatatan}
+                  onChange={(e) => setCancelCatatan(e.target.value)}
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 bg-slate-50 resize-none"
+                  placeholder="Masukkan alasan pembatalan..."
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setActionModal(null)}
+                  disabled={isProcessing}
+                  className="flex-1 px-4 py-3 font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessing || !cancelCatatan.trim()}
+                  className="flex-1 px-4 py-3 font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isProcessing ? (
+                    <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>Batalkan Jadwal</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
 
       {/* Modal Assign */}
       {actionModal === 'assign' && selectedChild && (
