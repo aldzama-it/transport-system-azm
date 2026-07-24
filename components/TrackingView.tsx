@@ -210,8 +210,8 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
               </button>
               <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
                 {selectedRequest.noForm}
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${statusConfig[selectedRequest.status].color}`}>
-                  {statusConfig[selectedRequest.status].label}
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${(statusConfig[selectedRequest.status] || statusConfig.pending).color}`}>
+                  {(statusConfig[selectedRequest.status] || statusConfig.pending).label}
                 </span>
               </h2>
             </div>
