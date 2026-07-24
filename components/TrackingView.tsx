@@ -69,7 +69,7 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchRequestDetails = async (id: number) => {
+  const fetchRequestDetails = async (id: number | string) => {
     try {
       const res = await fetch(`/api/requests/${id}`);
       const data = await res.json();
@@ -100,7 +100,7 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
         setIsCancelModalOpen(false);
         setCancelReason("");
         // Refresh detail
-        fetchRequestDetails(selectedRequest.id);
+        fetchRequestDetails(selectedRequest.isRoutineParent ? `routine-${selectedRequest.id}` : selectedRequest.id);
         // Refresh list
         handleSearch();
       } else {
@@ -158,13 +158,13 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
       {requests.length > 0 && !selectedRequest && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {requests.map((req) => {
-            const status = statusConfig[req.status];
+            const status = statusConfig[req.status] || statusConfig.pending;
             const StatusIcon = status.icon;
 
             return (
               <div
-                key={req.id}
-                onClick={() => fetchRequestDetails(req.id)}
+                key={req.isRoutineParent ? `routine-${req.id}` : req.id}
+                onClick={() => fetchRequestDetails(req.isRoutineParent ? `routine-${req.id}` : req.id)}
                 className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group"
               >
                 <div className="flex justify-between items-start mb-4">
