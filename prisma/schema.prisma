@@ -122,6 +122,8 @@ model RoutineRequest {
   notes         String?         @db.Text
   status        RoutineStatus   @default(pending)
   buktiFileUrl  String?
+  alasanDeny    String?         @db.Text
+  alasanCancel  String?         @db.Text
 
   requests      Request[]
 

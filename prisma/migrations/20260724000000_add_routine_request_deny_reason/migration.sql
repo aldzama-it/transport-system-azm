@@ -1,0 +1,2 @@
+ALTER TABLE `RoutineRequest` ADD COLUMN `alasanDeny` TEXT NULL;
+ALTER TABLE `RoutineRequest` ADD COLUMN `alasanCancel` TEXT NULL;
