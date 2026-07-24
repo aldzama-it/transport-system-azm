@@ -29,7 +29,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         include: {
           requests: {
             include: { driver: true, kendaraan: true, history: true },
-            orderBy: { tglMulai: 'desc' }
+            orderBy: { tglMulai: 'asc' }
           }
         }
       });
@@ -78,7 +78,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         routineTotalDays: totalDays,
         routineDoneDays: doneDays,
         routineRepeatType: routineRequest.repeatType,
-        buktiFileUrl: routineRequest.buktiFileUrl
+        buktiFileUrl: routineRequest.buktiFileUrl,
+        childRequests: routineRequest.requests || []
       };
       
       return NextResponse.json({ success: true, data: mappedRoutine });
