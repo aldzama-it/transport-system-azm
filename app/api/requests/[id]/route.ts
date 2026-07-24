@@ -63,7 +63,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         }
       ];
 
-      if (["active", "completed"].includes(routineRequest.status)) {
+      if (["active", "completed", "done", "granted", "in_progress"].includes(routineRequest.status)) {
         generatedHistory.push({
           id: 2,
           status: "granted",
