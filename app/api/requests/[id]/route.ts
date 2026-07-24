@@ -43,15 +43,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       const actualDays = routineRequest.requests?.length || 0;
       const totalDays = actualDays > 0 ? actualDays : expectedDays;
       const doneDays = routineRequest.requests?.filter((req: any) => req.status === 'done').length || 0;
-      
       let mappedStatus = routineRequest.status;
-      if (routineRequest.status === "active") {
-        if (actualDays > 0 && doneDays === actualDays) {
-          mappedStatus = "done";
-        } else {
-          mappedStatus = "in_progress";
-        }
-      }
+if (routineRequest.status === "active") {
+  if (actualDays > 0 && doneDays === actualDays) {
+    mappedStatus = "completed";
+  } else {
+    mappedStatus = "active";
+  }
+}
+      
+      
 
       const mappedRoutine = {
         id: routineRequest.id,

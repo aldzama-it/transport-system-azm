@@ -107,9 +107,9 @@ export async function GET(req: NextRequest) {
         let mappedStatus = routineRequest.status;
         if (routineRequest.status === "active") {
           if (actualDays > 0 && doneDays === actualDays) {
-            mappedStatus = "done";
+            mappedStatus = "completed";
           } else {
-            mappedStatus = "in_progress";
+            mappedStatus = "active";
           }
         }
 
