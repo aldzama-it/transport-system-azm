@@ -298,11 +298,28 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                       required
                       rows={3}
                       className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none"
-                      placeholder="Lokasi tujuan akhir..."
+                      placeholder="Tuliskan tujuan dengan spesifik..."
                     />
                   </div>
                 </div>
               </div>
+
+              <div>
+                <label htmlFor="alasan" className="block text-sm font-medium text-slate-700 mb-2">
+                  Alasan / Keperluan
+                </label>
+                <div className="relative">
+                  <textarea
+                    name="alasan"
+                    id="alasan"
+                    required
+                    rows={3}
+                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none"
+                    placeholder="Contoh: Meeting rutin bulanan dengan client..."
+                  />
+                </div>
+              </div>
+
             </div>
           </div>
 

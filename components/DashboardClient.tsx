@@ -375,7 +375,9 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
       "No Form": "",
       "Pemohon": "John Doe",
       "Divisi": "Marketing",
+      "Titik Jemput": "Kantor Pusat",
       "Tujuan": "Meeting Klien",
+      "Alasan": "Keperluan operasional",
       "Tgl Mulai": "25/08/2026",
       "Jam Mulai": "08:00",
       "Tgl Selesai": "25/08/2026",
@@ -515,33 +517,99 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
 
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
                           setOpenDropdown(null);
                           if (processedRequests.length === 0) {
                             toast.error("Tidak ada data untuk diekspor");
                             return;
                           }
-                          const exportData = processedRequests.map(req => ({
-                            "No Form": req.noForm,
-                            "Pemohon": req.namaPemohon,
-                            "Divisi": req.divisi,
-                            "Tujuan": req.tujuan,
-                            "Tgl Mulai": req.tglMulai ? format(new Date(req.tglMulai), "dd/MM/yyyy") : "",
-                            "Jam Mulai": req.tglMulai ? (format(new Date(req.tglMulai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglMulai), "HH:mm")) : "",
-                            "Tgl Selesai": req.tglSelesai ? format(new Date(req.tglSelesai), "dd/MM/yyyy") : "",
-                            "Jam Selesai": req.tglSelesai ? (format(new Date(req.tglSelesai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglSelesai), "HH:mm")) : "",
-                            "Status": statusConfig[req.status]?.label || req.status,
-                            "Driver": req.driver ? req.driver.nama : "-",
-                            "Kendaraan": req.kendaraan ? req.kendaraan.jenis : "-",
-                            "No. Polisi": req.kendaraan ? req.kendaraan.nopol : "-",
-                            "Waktu Pengajuan": format(new Date(req.createdAt), "dd/MM/yyyy HH:mm"),
-                            "Catatan Koor": req.history?.find((h: any) => h.status === 'granted')?.catatan || ""
-                          }));
-                          const worksheet = XLSX.utils.json_to_sheet(exportData);
-                          const workbook = XLSX.utils.book_new();
-                          XLSX.utils.book_append_sheet(workbook, worksheet, "Data Transport");
-                          XLSX.writeFile(workbook, `Data_Transport_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`);
-                          toast.success("Data berhasil diekspor ke Excel");
+                          
+                          toast.info("Menyiapkan data ekspor...", { id: "export-toast" });
+                          try {
+                            const res = await fetch('/api/requests?type=calendar');
+                            const data = await res.json();
+                            if (!data.success) {
+                              toast.error("Gagal mengambil data ekspor", { id: "export-toast" });
+                              return;
+                            }
+
+                            let exportRaw = data.data.filter((r: any) => !r.isRoutineParent);
+
+                            // Apply current local filters
+                            if (search) {
+                              const q = search.toLowerCase();
+                              exportRaw = exportRaw.filter((r: any) => r.noForm.toLowerCase().includes(q) || r.namaPemohon.toLowerCase().includes(q));
+                            }
+                            if (filterStatus !== "all") {
+                              exportRaw = exportRaw.filter((r: any) => r.status === filterStatus);
+                            }
+                            if (filterDivisi !== "all") {
+                              exportRaw = exportRaw.filter((r: any) => r.divisi === filterDivisi);
+                            }
+                            if (filterKendaraan !== "all") {
+                              if (filterKendaraan === "none") {
+                                exportRaw = exportRaw.filter((r: any) => !r.kendaraan);
+                              } else {
+                                exportRaw = exportRaw.filter((r: any) => r.kendaraan?.id === Number(filterKendaraan));
+                              }
+                            }
+                            if (filterDriver !== "all") {
+                              if (filterDriver === "none") {
+                                exportRaw = exportRaw.filter((r: any) => !r.driver);
+                              } else {
+                                exportRaw = exportRaw.filter((r: any) => r.driver?.id === Number(filterDriver));
+                              }
+                            }
+                            if (dateFrom) {
+                              const from = new Date(dateFrom);
+                              from.setHours(0, 0, 0, 0);
+                              exportRaw = exportRaw.filter((r: any) => new Date(r.tglMulai) >= from);
+                            }
+                            if (dateTo) {
+                              const to = new Date(dateTo);
+                              to.setHours(23, 59, 59, 999);
+                              exportRaw = exportRaw.filter((r: any) => new Date(r.tglMulai) <= to);
+                            }
+                            if (filterType !== "all") {
+                              if (filterType === "manual") {
+                                exportRaw = exportRaw.filter((r: any) => !r.routineRequestId);
+                              } else if (filterType === "routine") {
+                                exportRaw = exportRaw.filter((r: any) => r.routineRequestId);
+                              }
+                            }
+
+                            if (exportRaw.length === 0) {
+                              toast.error("Tidak ada data yang sesuai dengan filter", { id: "export-toast" });
+                              return;
+                            }
+
+                            const exportData = exportRaw.map((req: any) => ({
+                              "No Form": req.noForm,
+                              "Pemohon": req.namaPemohon,
+                              "Divisi": req.divisi,
+                              "Titik Jemput": req.titikJemput || "-",
+                              "Tujuan": req.tujuan,
+                              "Alasan": req.alasan || "-",
+                              "Tgl Mulai": req.tglMulai ? format(new Date(req.tglMulai), "dd/MM/yyyy") : "",
+                              "Jam Mulai": req.tglMulai ? (format(new Date(req.tglMulai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglMulai), "HH:mm")) : "",
+                              "Tgl Selesai": req.tglSelesai ? format(new Date(req.tglSelesai), "dd/MM/yyyy") : "",
+                              "Jam Selesai": req.tglSelesai ? (format(new Date(req.tglSelesai), "HH:mm") === "00:00" ? "" : format(new Date(req.tglSelesai), "HH:mm")) : "",
+                              "Status": statusConfig[req.status]?.label || req.status,
+                              "Driver": req.driver ? req.driver.nama : "-",
+                              "Kendaraan": req.kendaraan ? req.kendaraan.jenis : "-",
+                              "No. Polisi": req.kendaraan ? req.kendaraan.nopol : "-",
+                              "Waktu Pengajuan": format(new Date(req.createdAt), "dd/MM/yyyy HH:mm"),
+                              "Catatan Koor": req.history?.find((h: any) => h.status === 'granted')?.catatan || ""
+                            }));
+
+                            const worksheet = XLSX.utils.json_to_sheet(exportData);
+                            const workbook = XLSX.utils.book_new();
+                            XLSX.utils.book_append_sheet(workbook, worksheet, "Data Transport");
+                            XLSX.writeFile(workbook, `Data_Transport_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`);
+                            toast.success("Data berhasil diekspor ke Excel", { id: "export-toast" });
+                          } catch (e) {
+                            toast.error("Terjadi kesalahan saat mengekspor data", { id: "export-toast" });
+                          }
                         }}
                         className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 transition-colors"
                       >
@@ -1224,6 +1292,9 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
                   </p>
                   <p className="text-slate-700">
                     <span className="font-semibold">Titik Tujuan:</span> {selectedRequest.tujuan}
+                  </p>
+                  <p className="text-slate-700">
+                    <span className="font-semibold">Alasan/Keperluan:</span> {selectedRequest.alasan || '-'}
                   </p>
                   <a
                     href={selectedRequest.buktiFileUrl}
