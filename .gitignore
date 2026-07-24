@@ -47,3 +47,6 @@ next-env.d.ts
 /app/generated/prisma
 public/uploads/bukti/
 "public/uploads/bukti/"
+
+# agents configuration
+.agents/

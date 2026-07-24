@@ -73,6 +73,7 @@ model Request {
   divisi        String
   titikJemput   String?         @db.Text
   tujuan        String          @db.Text
+  alasan        String?         @db.Text
   tglMulai      DateTime?
   tglSelesai    DateTime?
   status        RequestStatus   @default(pending)
