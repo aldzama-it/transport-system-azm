@@ -266,43 +266,74 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><UserCircle className="w-5 h-5 text-indigo-500" /> Driver</h3>
-                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 min-h-[100px] flex flex-col justify-center">
-                    {selectedRequest.driver ? (
-                      <>
-                        <p className="font-bold text-slate-900">{selectedRequest.driver.nama}</p>
-                        {selectedRequest.driver.telepon && (
-                          <a 
-                            href={`https://wa.me/${selectedRequest.driver.telepon.replace(/\D/g, '').replace(/^0/, '62')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-lg font-bold mt-2 hover:bg-green-100 transition-colors w-max border border-green-200"
-                          >
-                            <Phone className="w-4 h-4" /> {selectedRequest.driver.telepon}
-                          </a>
-                        )}
-                      </>
-                    ) : (
-                      <p className="text-slate-500 italic">Belum ditentukan</p>
-                    )}
+              {!selectedRequest.isRoutineParent ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><UserCircle className="w-5 h-5 text-indigo-500" /> Driver</h3>
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 min-h-[100px] flex flex-col justify-center">
+                      {selectedRequest.driver ? (
+                        <>
+                          <p className="font-bold text-slate-900">{selectedRequest.driver.nama}</p>
+                          {selectedRequest.driver.telepon && (
+                            <a 
+                              href={`https://wa.me/${selectedRequest.driver.telepon.replace(/\D/g, '').replace(/^0/, '62')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-lg font-bold mt-2 hover:bg-green-100 transition-colors w-max border border-green-200"
+                            >
+                              <Phone className="w-4 h-4" /> {selectedRequest.driver.telepon}
+                            </a>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-slate-500 italic">Belum ditentukan</p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><Car className="w-5 h-5 text-indigo-500" /> Kendaraan</h3>
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 min-h-[100px] flex flex-col justify-center">
+                      {selectedRequest.kendaraan ? (
+                        <>
+                          <p className="font-bold text-slate-900">{selectedRequest.kendaraan.jenis}</p>
+                          <p className="text-sm font-semibold text-slate-600 px-2 py-1 bg-slate-200 rounded inline-block mt-2 self-start">{selectedRequest.kendaraan.nopol}</p>
+                        </>
+                      ) : (
+                        <p className="text-slate-500 italic">Belum ditentukan</p>
+                      )}
+                    </div>
                   </div>
                 </div>
+              ) : (
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><Car className="w-5 h-5 text-indigo-500" /> Kendaraan</h3>
-                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 min-h-[100px] flex flex-col justify-center">
-                    {selectedRequest.kendaraan ? (
-                      <>
-                        <p className="font-bold text-slate-900">{selectedRequest.kendaraan.jenis}</p>
-                        <p className="text-sm font-semibold text-slate-600 px-2 py-1 bg-slate-200 rounded inline-block mt-2 self-start">{selectedRequest.kendaraan.nopol}</p>
-                      </>
-                    ) : (
-                      <p className="text-slate-500 italic">Belum ditentukan</p>
-                    )}
-                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><Calendar className="w-5 h-5 text-indigo-500" /> Jadwal Harian & Penugasan</h3>
+                  {selectedRequest.childRequests && selectedRequest.childRequests.length > 0 ? (
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                      {selectedRequest.childRequests.map((child: any) => {
+                         const cStat = statusConfig[child.status] || statusConfig.pending;
+                         return (
+                           <div key={child.id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                             <div>
+                               <p className="font-bold text-slate-900">{formatDateTime(child.tglMulai)}</p>
+                               <div className="text-sm text-slate-600 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                                 <span><span className="font-semibold">Driver:</span> {child.driver ? child.driver.nama : '-'}</span>
+                                 <span><span className="font-semibold">Mobil:</span> {child.kendaraan ? child.kendaraan.nopol : '-'}</span>
+                               </div>
+                             </div>
+                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${cStat.color} shrink-0`}>
+                               {cStat.label}
+                             </span>
+                           </div>
+                         );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 text-center text-slate-500">
+                      Jadwal harian belum di-generate atau tidak tersedia.
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               <div>
                 <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><FileText className="w-5 h-5 text-indigo-500" /> Bukti Persetujuan</h3>
