@@ -60,6 +60,7 @@ export type CreateRequestData = {
   divisi: string;
   titikJemput?: string;
   tujuan: string;
+  alasan?: string;
   tglMulai: Date;
   tglSelesai: Date;
   buktiFileUrl?: string;
@@ -76,6 +77,7 @@ export async function createNewRequest(data: CreateRequestData) {
         divisi: data.divisi,
         titikJemput: data.titikJemput || null,
         tujuan: data.tujuan,
+        alasan: data.alasan || null,
         tglMulai: data.tglMulai,
         tglSelesai: data.tglSelesai,
         buktiFileUrl: data.buktiFileUrl,

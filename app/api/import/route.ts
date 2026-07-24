@@ -132,7 +132,9 @@ export async function POST(req: NextRequest) {
         const noFormExcel = (row["No Form"] || "").toString().trim();
         const namaPemohon = (row["Pemohon"] || "").toString().trim();
         const divisi = (row["Divisi"] || "").toString().trim();
+        const titikJemput = (row["Titik Jemput"] || row["Jemput"] || "").toString().trim();
         const tujuan = (row["Tujuan"] || "").toString().trim();
+        const alasan = (row["Alasan"] || "").toString().trim();
         const tglMulaiExcel = (row["Tgl Mulai"] || row["Tgl & Jam Mulai"] || "").toString().trim();
         const jamMulaiExcel = (row["Jam Mulai"] || "").toString().trim();
         const tglSelesaiExcel = (row["Tgl Selesai"] || row["Tgl & Jam Selesai"] || "").toString().trim();
@@ -215,7 +217,9 @@ export async function POST(req: NextRequest) {
             noForm,
             namaPemohon,
             divisi,
+            titikJemput: titikJemput || null,
             tujuan,
+            alasan: alasan || null,
             tglMulai,
             tglSelesai,
             status,

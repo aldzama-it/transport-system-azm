@@ -12,6 +12,7 @@ const createRequestSchema = z.object({
   divisi: z.string().min(1, "Divisi wajib diisi"),
   titikJemput: z.string().min(1, "Titik jemput wajib diisi"),
   tujuan: z.string().min(1, "Titik tujuan wajib diisi"),
+  alasan: z.string().min(1, "Alasan/Keperluan wajib diisi"),
   tglMulai: z.string().datetime({ offset: true }).or(z.string()),
   tglSelesai: z.string().datetime({ offset: true }).or(z.string()),
 });
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest) {
       divisi: formData.get("divisi") as string,
       titikJemput: formData.get("titikJemput") as string,
       tujuan: formData.get("tujuan") as string,
+      alasan: formData.get("alasan") as string,
       tglMulai: formData.get("tglMulai") as string,
       tglSelesai: formData.get("tglSelesai") as string,
     };
@@ -56,6 +58,7 @@ export async function POST(req: NextRequest) {
       divisi: data.divisi,
       titikJemput: data.titikJemput,
       tujuan: data.tujuan,
+      alasan: data.alasan,
       tglMulai: new Date(data.tglMulai),
       tglSelesai: new Date(data.tglSelesai),
       buktiFileUrl: publicPath
@@ -78,7 +81,69 @@ export async function GET(req: NextRequest) {
 
     if (tracking && search) {
       const request = await getRequestByNoForm(search);
-      return NextResponse.json({ success: true, data: request ? [request] : [] });
+      if (request) {
+        return NextResponse.json({ success: true, data: [request] });
+      }
+
+      // Check routine request
+      const { prisma } = await import("@/lib/prisma");
+      const routineRequest = await prisma.routineRequest.findUnique({
+        where: { noForm: search },
+        include: {
+          requests: {
+            include: { driver: true, kendaraan: true, history: true },
+            orderBy: { tglMulai: 'desc' }
+          }
+        }
+      });
+
+      if (routineRequest) {
+        const { calculateExpectedDays } = await import("@/lib/routineRequests");
+        const expectedDays = calculateExpectedDays(routineRequest.startDate, routineRequest.endDate, routineRequest.repeatType);
+        const actualDays = routineRequest.requests?.length || 0;
+        const totalDays = actualDays > 0 ? actualDays : expectedDays;
+        const doneDays = routineRequest.requests?.filter((req: any) => req.status === 'done').length || 0;
+        
+        let mappedStatus = routineRequest.status;
+        if (routineRequest.status === "active") {
+          if (actualDays > 0 && doneDays === actualDays) {
+            mappedStatus = "done";
+          } else {
+            mappedStatus = "in_progress";
+          }
+        }
+
+        const mappedRoutine = {
+          id: routineRequest.id,
+          isRoutineParent: true,
+          noForm: routineRequest.noForm || "-",
+          namaPemohon: routineRequest.requester,
+          divisi: routineRequest.divisi,
+          tujuan: routineRequest.title,
+          tglMulai: routineRequest.startDate,
+          tglSelesai: routineRequest.endDate,
+          status: mappedStatus,
+          createdAt: routineRequest.createdAt,
+          driver: null,
+          kendaraan: null,
+          history: [
+            {
+              id: 1,
+              status: routineRequest.status === "active" ? "granted" : routineRequest.status,
+              createdAt: routineRequest.createdAt,
+              catatan: "Pengajuan rutin dibuat"
+            }
+          ],
+          routineRequestId: null,
+          routineTotalDays: totalDays,
+          routineDoneDays: doneDays,
+          routineRepeatType: routineRequest.repeatType,
+          buktiFileUrl: routineRequest.buktiFileUrl
+        };
+        return NextResponse.json({ success: true, data: [mappedRoutine] });
+      }
+
+      return NextResponse.json({ success: true, data: [] });
     }
 
     const { prisma } = await import("@/lib/prisma");
