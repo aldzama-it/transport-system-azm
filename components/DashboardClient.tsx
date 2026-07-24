@@ -250,6 +250,10 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
         } else if (actionModal === 'delete') {
           endpoint = `/api/routine-requests/${selectedRequest.id}`;
           method = 'DELETE';
+        } else if (actionModal === 'deny') {
+          endpoint = `/api/routine-requests/${selectedRequest.id}/deny`;
+          method = 'POST';
+          body = { alasanDeny };
         } else {
           toast.error("Aksi ini tidak didukung untuk form rutin (parent)");
           setIsProcessing(false);
