@@ -43,16 +43,56 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       const actualDays = routineRequest.requests?.length || 0;
       const totalDays = actualDays > 0 ? actualDays : expectedDays;
       const doneDays = routineRequest.requests?.filter((req: any) => req.status === 'done').length || 0;
-      let mappedStatus = routineRequest.status;
-if (routineRequest.status === "active") {
-  if (actualDays > 0 && doneDays === actualDays) {
-    mappedStatus = "completed";
-  } else {
-    mappedStatus = "active";
-  }
-}
-      
-      
+      let frontendStatus = routineRequest.status as string;
+      if (routineRequest.status === "active") {
+        if (actualDays > 0 && doneDays === actualDays) {
+          frontendStatus = "done";
+        } else {
+          frontendStatus = "in_progress";
+        }
+      } else if (routineRequest.status === "completed") {
+        frontendStatus = "done";
+      }
+
+      const generatedHistory = [
+        {
+          id: 1,
+          status: "pending",
+          createdAt: routineRequest.createdAt,
+          catatan: "Pengajuan rutin dibuat"
+        }
+      ];
+
+      if (["active", "completed"].includes(routineRequest.status)) {
+        generatedHistory.push({
+          id: 2,
+          status: "granted",
+          createdAt: new Date(routineRequest.createdAt.getTime() + 1000),
+          catatan: "Pengajuan rutin disetujui"
+        });
+        
+        if (frontendStatus === "in_progress" || frontendStatus === "done") {
+          generatedHistory.push({
+            id: 3,
+            status: "in_progress",
+            createdAt: routineRequest.updatedAt,
+            catatan: "Sedang dalam masa pelaksanaan jadwal harian"
+          });
+        }
+        
+        if (frontendStatus === "done") {
+          generatedHistory.push({
+            id: 4,
+            status: "done",
+            createdAt: routineRequest.updatedAt,
+            catatan: "Seluruh jadwal harian telah selesai"
+          });
+        }
+      } else if (routineRequest.status === "deny") {
+        generatedHistory.push({ id: 2, status: "deny", createdAt: routineRequest.updatedAt, catatan: "Pengajuan rutin ditolak" });
+      } else if (routineRequest.status === "cancelled") {
+        generatedHistory.push({ id: 2, status: "cancelled", createdAt: routineRequest.updatedAt, catatan: "Pengajuan rutin dibatalkan" });
+      }
 
       const mappedRoutine = {
         id: routineRequest.id,
@@ -63,18 +103,11 @@ if (routineRequest.status === "active") {
         tujuan: routineRequest.title,
         tglMulai: routineRequest.startDate,
         tglSelesai: routineRequest.endDate,
-        status: mappedStatus,
+        status: frontendStatus,
         createdAt: routineRequest.createdAt,
         driver: null,
         kendaraan: null,
-        history: [
-          {
-            id: 1,
-            status: routineRequest.status === "active" ? "granted" : routineRequest.status,
-            createdAt: routineRequest.createdAt,
-            catatan: "Pengajuan rutin dibuat"
-          }
-        ],
+        history: generatedHistory,
         routineRequestId: null,
         routineTotalDays: totalDays,
         routineDoneDays: doneDays,
