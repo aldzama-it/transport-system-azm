@@ -371,29 +371,38 @@ export default function AssetsClient({ readOnly = false }: { readOnly?: boolean 
                     </tbody>
                   </table>
                 </div>
-                {processedDrivers.length > itemsPerPage && (
-                  <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
-                    <p className="text-sm text-slate-500">
-                      Menampilkan <span className="font-bold text-slate-700">{(driverPage - 1) * itemsPerPage + 1}</span> hingga <span className="font-bold text-slate-700">{Math.min(driverPage * itemsPerPage, processedDrivers.length)}</span> dari <span className="font-bold text-slate-700">{processedDrivers.length}</span> driver
-                    </p>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => setDriverPage(p => Math.max(1, p - 1))}
-                        disabled={driverPage === 1}
-                        className="px-3 py-1.5 text-sm font-semibold border border-slate-200 rounded-lg text-slate-600 hover:bg-white disabled:opacity-50 transition-colors"
-                      >
-                        Sebelumnya
-                      </button>
-                      <button 
-                        onClick={() => setDriverPage(p => Math.min(totalDriverPages, p + 1))}
-                        disabled={driverPage === totalDriverPages}
-                        className="px-3 py-1.5 text-sm font-semibold border border-slate-200 rounded-lg text-slate-600 hover:bg-white disabled:opacity-50 transition-colors"
-                      >
-                        Selanjutnya
-                      </button>
+                <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
+                  <p className="text-sm text-slate-500">
+                    Menampilkan <span className="font-bold text-slate-700">{processedDrivers.length > 0 ? (driverPage - 1) * itemsPerPage + 1 : 0}</span> hingga <span className="font-bold text-slate-700">{Math.min(driverPage * itemsPerPage, processedDrivers.length)}</span> dari <span className="font-bold text-slate-700">{processedDrivers.length}</span> driver
+                  </p>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setDriverPage(p => Math.max(1, p - 1))}
+                      disabled={driverPage === 1}
+                      className="px-3 py-1.5 text-sm font-semibold border border-slate-200 rounded-lg text-slate-600 hover:bg-white disabled:opacity-50 transition-colors"
+                    >
+                      Sebelumnya
+                    </button>
+                    <div className="flex gap-1 items-center">
+                      {Array.from({ length: Math.max(1, totalDriverPages) }).map((_, i) => (
+                        <button
+                          key={i + 1}
+                          onClick={() => setDriverPage(i + 1)}
+                          className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center transition-colors ${driverPage === i + 1 ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
                     </div>
+                    <button 
+                      onClick={() => setDriverPage(p => Math.min(Math.max(1, totalDriverPages), p + 1))}
+                      disabled={driverPage === Math.max(1, totalDriverPages)}
+                      className="px-3 py-1.5 text-sm font-semibold border border-slate-200 rounded-lg text-slate-600 hover:bg-white disabled:opacity-50 transition-colors"
+                    >
+                      Selanjutnya
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
             );
           })()}
@@ -514,29 +523,38 @@ export default function AssetsClient({ readOnly = false }: { readOnly?: boolean 
                     </tbody>
                   </table>
                 </div>
-                {processedKendaraan.length > itemsPerPage && (
-                  <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
-                    <p className="text-sm text-slate-500">
-                      Menampilkan <span className="font-bold text-slate-700">{(kendaraanPage - 1) * itemsPerPage + 1}</span> hingga <span className="font-bold text-slate-700">{Math.min(kendaraanPage * itemsPerPage, processedKendaraan.length)}</span> dari <span className="font-bold text-slate-700">{processedKendaraan.length}</span> kendaraan
-                    </p>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => setKendaraanPage(p => Math.max(1, p - 1))}
-                        disabled={kendaraanPage === 1}
-                        className="px-3 py-1.5 text-sm font-semibold border border-slate-200 rounded-lg text-slate-600 hover:bg-white disabled:opacity-50 transition-colors"
-                      >
-                        Sebelumnya
-                      </button>
-                      <button 
-                        onClick={() => setKendaraanPage(p => Math.min(totalKendaraanPages, p + 1))}
-                        disabled={kendaraanPage === totalKendaraanPages}
-                        className="px-3 py-1.5 text-sm font-semibold border border-slate-200 rounded-lg text-slate-600 hover:bg-white disabled:opacity-50 transition-colors"
-                      >
-                        Selanjutnya
-                      </button>
+                <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
+                  <p className="text-sm text-slate-500">
+                    Menampilkan <span className="font-bold text-slate-700">{processedKendaraan.length > 0 ? (kendaraanPage - 1) * itemsPerPage + 1 : 0}</span> hingga <span className="font-bold text-slate-700">{Math.min(kendaraanPage * itemsPerPage, processedKendaraan.length)}</span> dari <span className="font-bold text-slate-700">{processedKendaraan.length}</span> kendaraan
+                  </p>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setKendaraanPage(p => Math.max(1, p - 1))}
+                      disabled={kendaraanPage === 1}
+                      className="px-3 py-1.5 text-sm font-semibold border border-slate-200 rounded-lg text-slate-600 hover:bg-white disabled:opacity-50 transition-colors"
+                    >
+                      Sebelumnya
+                    </button>
+                    <div className="flex gap-1 items-center">
+                      {Array.from({ length: Math.max(1, totalKendaraanPages) }).map((_, i) => (
+                        <button
+                          key={i + 1}
+                          onClick={() => setKendaraanPage(i + 1)}
+                          className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center transition-colors ${kendaraanPage === i + 1 ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
                     </div>
+                    <button 
+                      onClick={() => setKendaraanPage(p => Math.min(Math.max(1, totalKendaraanPages), p + 1))}
+                      disabled={kendaraanPage === Math.max(1, totalKendaraanPages)}
+                      className="px-3 py-1.5 text-sm font-semibold border border-slate-200 rounded-lg text-slate-600 hover:bg-white disabled:opacity-50 transition-colors"
+                    >
+                      Selanjutnya
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
             );
           })()}
