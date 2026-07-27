@@ -1179,40 +1179,38 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
             </table>
           </div>
 
-          {totalPages > 1 && (
-            <div className="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-between">
-              <span className="text-sm text-slate-500">
-                Menampilkan <span className="font-semibold text-slate-700">{((currentPage - 1) * ITEMS_PER_PAGE) + 1}</span> - <span className="font-semibold text-slate-700">{Math.min(currentPage * ITEMS_PER_PAGE, processedRequests.length)}</span> dari <span className="font-semibold text-slate-700">{processedRequests.length}</span> data
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
-                >
-                  Sebelumnya
-                </button>
-                <div className="flex gap-1 items-center">
-                  {Array.from({ length: totalPages }).map((_, i) => (
-                    <button
-                      key={i + 1}
-                      onClick={() => setCurrentPage(i + 1)}
-                      className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center transition-colors ${currentPage === i + 1 ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
-                >
-                  Selanjutnya
-                </button>
+          <div className="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-between">
+            <span className="text-sm text-slate-500">
+              Menampilkan <span className="font-semibold text-slate-700">{processedRequests.length > 0 ? ((currentPage - 1) * ITEMS_PER_PAGE) + 1 : 0}</span> - <span className="font-semibold text-slate-700">{Math.min(currentPage * ITEMS_PER_PAGE, processedRequests.length)}</span> dari <span className="font-semibold text-slate-700">{processedRequests.length}</span> data
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              >
+                Sebelumnya
+              </button>
+              <div className="flex gap-1 items-center">
+                {Array.from({ length: Math.max(1, totalPages) }).map((_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center transition-colors ${currentPage === i + 1 ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
               </div>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(Math.max(1, totalPages), p + 1))}
+                disabled={currentPage === Math.max(1, totalPages)}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              >
+                Selanjutnya
+              </button>
             </div>
-          )}
+          </div>
         </motion.div>
       )}
 

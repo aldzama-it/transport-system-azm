@@ -23,6 +23,9 @@ export default function AdminClient() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
 
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -134,6 +137,14 @@ export default function AdminClient() {
     processedUsers = processedUsers.filter(u => u.nama.toLowerCase().includes(lowerSearch) || u.email.toLowerCase().includes(lowerSearch));
   }
 
+  const totalPages = Math.ceil(processedUsers.length / ITEMS_PER_PAGE);
+  const paginatedUsers = processedUsers.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -208,9 +219,9 @@ export default function AdminClient() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {processedUsers.length === 0 ? (
+                {paginatedUsers.length === 0 ? (
                   <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500 font-medium">Data pengguna tidak ditemukan.</td></tr>
-                ) : processedUsers.map(u => (
+                ) : paginatedUsers.map(u => (
                   <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4 font-bold text-slate-800 flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center">
@@ -247,6 +258,38 @@ export default function AdminClient() {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-between">
+            <span className="text-sm text-slate-500">
+              Menampilkan <span className="font-semibold text-slate-700">{processedUsers.length > 0 ? ((currentPage - 1) * ITEMS_PER_PAGE) + 1 : 0}</span> - <span className="font-semibold text-slate-700">{Math.min(currentPage * ITEMS_PER_PAGE, processedUsers.length)}</span> dari <span className="font-semibold text-slate-700">{processedUsers.length}</span> data
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              >
+                Sebelumnya
+              </button>
+              <div className="flex gap-1 items-center">
+                {Array.from({ length: Math.max(1, totalPages) }).map((_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center transition-colors ${currentPage === i + 1 ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(Math.max(1, totalPages), p + 1))}
+                disabled={currentPage === Math.max(1, totalPages)}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              >
+                Selanjutnya
+              </button>
+            </div>
           </div>
         </div>
       )}
