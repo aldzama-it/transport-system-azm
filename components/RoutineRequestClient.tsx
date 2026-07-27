@@ -337,9 +337,9 @@ export default function RoutineRequestClient() {
                   onChange={handleChange}
                   className="block w-full px-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700"
                 >
-                  <option value="daily">Setiap Hari (Senin - Minggu)</option>
-                  <option value="weekdays">Hari Kerja (Senin - Jumat)</option>
-                  <option value="weekly">Mingguan (Sesuai hari mulai)</option>
+                  <option value="daily">Setiap Hari Penuh (Senin - Minggu)</option>
+                  <option value="weekdays">Hari Kerja Saja (Senin - Jumat)</option>
+                  <option value="weekly">1x Seminggu (Setiap minggu di hari yang sama dengan Tanggal Mulai)</option>
                 </select>
               </div>
 
