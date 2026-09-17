@@ -103,32 +103,32 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-4">
+    <div className="max-w-4xl mx-auto py-6 sm:py-12 px-3 sm:px-6 lg:px-8">
+      <div className="text-center mb-6 sm:mb-12">
+        <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2 sm:mb-4">
           Pengajuan Kendaraan <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400">Lebih Mudah</span>
         </h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+        <p className="text-sm sm:text-lg text-slate-600 max-w-2xl mx-auto">
           Isi form di bawah ini untuk Pengajuan penggunaan kendaraan operasional PT ALDZAMA. Cepat, mudah, dan transparan.
         </p>
       </div>
 
       <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 transition-all hover:shadow-2xl">
-        {/* Placeholder for future car banner */}
-        <div className="h-32 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-400 relative">
+        {/* Banner */}
+        <div className="h-20 sm:h-32 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-400 relative">
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-          <div className="absolute -bottom-8 left-8 bg-white p-4 rounded-2xl shadow-lg">
-            <CarFront className="h-8 w-8 text-indigo-600" />
+          <div className="absolute -bottom-6 sm:-bottom-8 left-6 sm:left-8 bg-white p-3 sm:p-4 rounded-2xl shadow-lg">
+            <CarFront className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600" />
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 sm:p-8 pt-12 md:p-12 md:pt-16 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              <h3 className="text-xl font-bold text-slate-800 border-b pb-2">Data Pemohon</h3>
+        <form onSubmit={handleSubmit} className="p-4 sm:p-8 pt-10 md:p-12 md:pt-16 space-y-6 sm:space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+            <div className="space-y-4 sm:space-y-6">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-800 border-b pb-2">Data Pemohon</h3>
               
               <div>
-                <label htmlFor="namaPemohon" className="block text-sm font-medium text-slate-700 mb-2">
+                <label htmlFor="namaPemohon" className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">
                   Nama Lengkap
                 </label>
                 <div className="relative">
@@ -140,14 +140,14 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                     name="namaPemohon"
                     id="namaPemohon"
                     required
-                    className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white"
+                    className="block w-full pl-10 pr-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white text-base sm:text-sm"
                     placeholder="Masukkan nama Anda"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="divisi" className="block text-sm font-medium text-slate-700 mb-2">
+                <label htmlFor="divisi" className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">
                   Divisi / Departemen
                 </label>
                 <div className="relative">
@@ -165,14 +165,14 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                       setShowDivisiDropdown(true);
                     }}
                     onFocus={() => setShowDivisiDropdown(true)}
-                    className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white relative z-20"
+                    className="block w-full pl-10 pr-10 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white relative z-20 text-base sm:text-sm"
                     placeholder="Pilih atau ketik divisi..."
                     autoComplete="off"
                   />
                   <button 
                     type="button"
                     onClick={() => setShowDivisiDropdown(!showDivisiDropdown)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center z-30 focus:outline-none"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center z-30 focus:outline-none min-h-[44px] min-w-[44px] justify-center"
                   >
                     <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${showDivisiDropdown ? 'rotate-180' : ''}`} />
                   </button>
@@ -213,49 +213,49 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
               </div>
             </div>
 
-            <div className="space-y-6">
-              <h3 className="text-xl font-bold text-slate-800 border-b pb-2">Detail Penggunaan</h3>
+            <div className="space-y-4 sm:space-y-6">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-800 border-b pb-2">Detail Penggunaan</h3>
               
-              <div className="grid grid-cols-1 gap-6">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6">
                 <div>
-                  <div className="flex justify-between items-end mb-2">
+                  <div className="flex justify-between items-end mb-1.5 sm:mb-2">
                     <label htmlFor="tglMulai" className="block text-sm font-medium text-slate-700">Tgl & Jam Mulai</label>
                     <span className="text-xs text-slate-400 font-normal">Jam opsional</span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <input
                       type="date"
                       name="tglMulai"
                       id="tglMulai"
                       required
-                      className="block w-3/5 px-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
+                      className="sm:col-span-2 block w-full px-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-base sm:text-sm"
                     />
                     <input
                       type="time"
                       name="jamMulai"
                       id="jamMulai"
-                      className="block w-2/5 px-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
+                      className="block w-full px-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-base sm:text-sm"
                     />
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between items-end mb-2">
+                  <div className="flex justify-between items-end mb-1.5 sm:mb-2">
                     <label htmlFor="tglSelesai" className="block text-sm font-medium text-slate-700">Tgl & Jam Selesai</label>
                     <span className="text-xs text-slate-400 font-normal">Jam opsional</span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <input
                       type="date"
                       name="tglSelesai"
                       id="tglSelesai"
                       required
-                      className="block w-3/5 px-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
+                      className="sm:col-span-2 block w-full px-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-base sm:text-sm"
                     />
                     <input
                       type="time"
                       name="jamSelesai"
                       id="jamSelesai"
-                      className="block w-2/5 px-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
+                      className="block w-full px-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-base sm:text-sm"
                     />
                   </div>
                   <p className="mt-2 text-xs text-slate-500">
@@ -263,6 +263,7 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                   </p>
                 </div>
               </div>
+
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -297,7 +298,7 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                       id="tujuan"
                       required
                       rows={3}
-                      className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none"
+                      className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none text-base sm:text-sm"
                       placeholder="Tuliskan tujuan dengan spesifik..."
                     />
                   </div>
@@ -314,7 +315,7 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                     id="alasan"
                     required
                     rows={3}
-                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none"
+                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none text-base sm:text-sm"
                     placeholder="Contoh: Meeting rutin bulanan dengan client..."
                   />
                 </div>

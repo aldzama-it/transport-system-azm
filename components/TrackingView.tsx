@@ -67,36 +67,37 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
 
 
   return (
-    <div className="max-w-6xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-      <div className="text-center mb-12">
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-4">Lacak Permintaan</h1>
-        <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto">
+    <div className="max-w-6xl mx-auto py-6 sm:py-12 px-3 sm:px-6 lg:px-8">
+      <div className="text-center mb-6 sm:mb-12">
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2 sm:mb-4">Lacak Permintaan</h1>
+        <p className="text-xs sm:text-base text-slate-600 max-w-2xl mx-auto">
           Masukkan nomor form (contoh: AZM-FRM...) atau nama Anda untuk melacak status pengajuan penggunaan kendaraan operasional PT ALDZAMA.
         </p>
       </div>
 
-      <div className="max-w-2xl mx-auto mb-12">
+      <div className="max-w-2xl mx-auto mb-8 sm:mb-12">
         <form onSubmit={handleSearch} className="relative group">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="h-6 w-6 text-indigo-400 group-focus-within:text-indigo-600 transition-colors" />
+          <div className="absolute inset-y-0 left-0 pl-3.5 sm:pl-4 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-400 group-focus-within:text-indigo-600 transition-colors" />
           </div>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="block w-full pl-10 sm:pl-12 pr-24 sm:pr-32 py-4 sm:py-5 border-2 border-slate-200 rounded-full focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 transition-all text-base sm:text-lg shadow-sm bg-white"
-            placeholder="No Form Lengkap"
+            className="block w-full pl-10 sm:pl-12 pr-20 sm:pr-32 py-3.5 sm:py-5 border-2 border-slate-200 rounded-full focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 transition-all text-base sm:text-lg shadow-sm bg-white"
+            placeholder="No Form Lengkap / Nama"
             autoComplete="off"
           />
           <button
             type="submit"
             disabled={isLoading || !search.trim()}
-            className="absolute right-2 top-2 bottom-2 px-4 sm:px-6 bg-indigo-600 text-white font-bold rounded-full hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 transition-all disabled:opacity-50 shadow-sm text-sm sm:text-base"
+            className="absolute right-1.5 sm:right-2 top-1.5 sm:top-2 bottom-1.5 sm:bottom-2 px-3.5 sm:px-6 bg-indigo-600 text-white font-bold rounded-full hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 transition-all disabled:opacity-50 shadow-sm text-xs sm:text-base min-h-[36px]"
           >
             {isLoading ? "Mencari..." : "Cari"}
           </button>
         </form>
       </div>
+
 
       {hasSearched && !isLoading && requests.length === 0 && (
         <div className="text-center py-16 bg-white rounded-3xl border border-slate-100 shadow-sm">

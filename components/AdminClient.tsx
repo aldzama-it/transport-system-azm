@@ -208,7 +208,7 @@ export default function AdminClient() {
               />
             </div>
           </div>
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
@@ -242,13 +242,13 @@ export default function AdminClient() {
                       <div className="flex justify-end gap-2">
                         <button 
                           onClick={() => setEditUser({ ...u, password: '' })}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => setDeleteId(u.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -259,6 +259,48 @@ export default function AdminClient() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card List View (< md) */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {paginatedUsers.length === 0 ? (
+              <div className="p-6 text-center text-slate-500 font-medium">Data pengguna tidak ditemukan.</div>
+            ) : paginatedUsers.map(u => (
+              <div key={u.id} className="p-4 space-y-3 bg-white">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800 text-sm">{u.nama}</p>
+                      <p className="text-xs text-slate-500">{u.email}</p>
+                    </div>
+                  </div>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    u.role === 'admin' ? 'bg-red-100 text-red-700' : 
+                    u.role === 'koor_transport' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {u.role === 'admin' ? 'Admin' : u.role === 'koor_transport' ? 'Koordinator' : 'Staff'}
+                  </span>
+                </div>
+                <div className="flex justify-end gap-2 pt-1 border-t border-slate-50">
+                  <button 
+                    onClick={() => setEditUser({ ...u, password: '' })}
+                    className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </button>
+                  <button 
+                    onClick={() => setDeleteId(u.id)}
+                    className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Hapus
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div className="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-between">
             <span className="text-sm text-slate-500">
               Menampilkan <span className="font-semibold text-slate-700">{processedUsers.length > 0 ? ((currentPage - 1) * ITEMS_PER_PAGE) + 1 : 0}</span> - <span className="font-semibold text-slate-700">{Math.min(currentPage * ITEMS_PER_PAGE, processedUsers.length)}</span> dari <span className="font-semibold text-slate-700">{processedUsers.length}</span> data
@@ -303,15 +345,15 @@ export default function AdminClient() {
               <div className="space-y-4 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Nama Lengkap</label>
-                  <input type="text" required value={newNama} onChange={e => setNewNama(e.target.value)} placeholder="Masukkan nama..." className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50" />
+                  <input type="text" required value={newNama} onChange={e => setNewNama(e.target.value)} placeholder="Masukkan nama..." className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-base sm:text-sm" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
-                  <input type="email" required value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="user@company.com" className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50" />
+                  <input type="email" required value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="user@company.com" className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-base sm:text-sm" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Role Akses</label>
-                  <select required value={newRole} onChange={e => setNewRole(e.target.value)} className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50">
+                  <select required value={newRole} onChange={e => setNewRole(e.target.value)} className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-base sm:text-sm">
                     <option value="staff_transport">Staff (Read Only)</option>
                     <option value="koor_transport">Koordinator (Full Dashboard)</option>
                     <option value="admin">Admin (Full Access)</option>
@@ -319,7 +361,7 @@ export default function AdminClient() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
-                  <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Masukkan password" className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50" />
+                  <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Masukkan password" className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-base sm:text-sm" />
                 </div>
               </div>
               <div className="flex justify-end gap-3">
@@ -342,10 +384,11 @@ export default function AdminClient() {
               <div className="space-y-4 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Nama Lengkap</label>
-                  <input type="text" required value={editUser.nama} onChange={e => setEditUser({...editUser, nama: e.target.value})} className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50" />
+                  <input type="text" required value={editUser.nama} onChange={e => setEditUser({...editUser, nama: e.target.value})} className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50 text-base sm:text-sm" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+
                   <input type="email" required value={editUser.email} onChange={e => setEditUser({...editUser, email: e.target.value})} className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 bg-slate-50" />
                 </div>
                 <div>

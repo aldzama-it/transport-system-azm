@@ -29,7 +29,8 @@ export default function RootLayout({
             </main>
           </TransitionProvider>
         </AuthProvider>
-        <Toaster position="top-center" richColors />
+        <Toaster position="top-center" richColors className="mt-14 sm:mt-0" />
+
       </body>
     </html>
   );
