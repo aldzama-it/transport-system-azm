@@ -10,7 +10,8 @@ import type { DashcamVehicle } from "@/components/FleetMap";
 const FleetMap = dynamic(() => import("@/components/FleetMap"), { 
   ssr: false,
   loading: () => (
-    <div className="w-full h-[500px] rounded-2xl bg-slate-100 animate-pulse flex items-center justify-center">
+    <div className="w-full h-[320px] sm:h-[420px] md:h-[500px] rounded-2xl bg-slate-100 animate-pulse flex items-center justify-center">
+
       <div className="flex flex-col items-center text-slate-400">
         <MapIcon className="w-10 h-10 mb-2 animate-bounce" />
         <p className="font-semibold">Memuat Peta...</p>

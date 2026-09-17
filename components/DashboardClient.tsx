@@ -793,7 +793,8 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
           {openDropdown && (
             <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
           )}
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
+
             <table className="w-full text-left border-collapse min-w-max">
               <thead>
                 <tr className="bg-indigo-600 border-b border-indigo-700 text-sm font-semibold text-white uppercase tracking-wider">
@@ -1178,6 +1179,97 @@ export default function DashboardClient({ readOnly = false }: { readOnly?: boole
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card List View (< md) */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {paginatedRequests.map((req) => {
+              const status = statusConfig[req.status] || statusConfig.pending;
+              return (
+                <div key={req.isRoutineParent ? `routine-${req.id}` : req.id} className="p-4 space-y-3 bg-white">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider border ${req.isRoutineParent ? 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                          {req.isRoutineParent ? 'Rutin' : 'Manual'}
+                        </span>
+                        <span className="font-bold text-slate-900 text-sm">{req.noForm}</span>
+                      </div>
+                      <p className="text-xs text-slate-500">{formatDateTime(req.createdAt)}</p>
+                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${status.color} shrink-0`}>
+                      {status.label}
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-slate-600 space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <p><span className="font-semibold text-slate-800">Pemohon:</span> {req.namaPemohon} ({req.divisi})</p>
+                    <p><span className="font-semibold text-slate-800">Tujuan:</span> {req.tujuan}</p>
+                    <p><span className="font-semibold text-slate-800">Jadwal:</span> {formatDateTime(req.tglMulai)} s/d {formatDateTime(req.tglSelesai)}</p>
+                    {req.driver && <p><span className="font-semibold text-indigo-700">Driver:</span> {req.driver.nama}</p>}
+                    {req.kendaraan && <p><span className="font-semibold text-indigo-700">Mobil:</span> {req.kendaraan.jenis} ({req.kendaraan.nopol})</p>}
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-1.5 pt-1">
+                    <button
+                      onClick={async () => {
+                        if (req.isRoutineParent) {
+                          window.location.href = `/dashboard/routine/${req.id}`;
+                        } else {
+                          const res = await fetch(`/api/requests/${req.id}`);
+                          const data = await res.json();
+                          if (data.success) setSelectedRequest(data.data);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-slate-100 text-slate-700 font-semibold rounded-lg text-xs hover:bg-slate-200 transition-colors"
+                    >
+                      Detail
+                    </button>
+                    {!readOnly && !req.isRoutineParent && req.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => { setSelectedRequest(req); setActionModal('grant'); }}
+                          className="px-3 py-1.5 bg-blue-600 text-white font-semibold rounded-lg text-xs hover:bg-blue-700 transition-colors"
+                        >
+                          Setujui
+                        </button>
+                        <button
+                          onClick={() => { setSelectedRequest(req); setActionModal('deny'); }}
+                          className="px-3 py-1.5 bg-red-50 text-red-600 font-semibold rounded-lg text-xs border border-red-200 hover:bg-red-600 hover:text-white transition-colors"
+                        >
+                          Tolak
+                        </button>
+                      </>
+                    )}
+                    {!readOnly && !req.isRoutineParent && (req.status === 'granted' || req.status === 'waiting_assignment') && (
+                      <button
+                        onClick={() => { setSelectedRequest(req); setSelectedDriver(req.driverId ? String(req.driverId) : ""); setSelectedKendaraan(req.kendaraanId ? String(req.kendaraanId) : ""); setAssignCatatan(""); setActionModal('assign'); }}
+                        className="px-3 py-1.5 bg-indigo-600 text-white font-semibold rounded-lg text-xs hover:bg-indigo-700 transition-colors"
+                      >
+                        Assign Driver & Mobil
+                      </button>
+                    )}
+                    {!readOnly && !req.isRoutineParent && req.status === 'assigned' && (
+                      <button
+                        onClick={() => { setSelectedRequest(req); setActionModal('start'); }}
+                        className="px-3 py-1.5 bg-purple-600 text-white font-semibold rounded-lg text-xs hover:bg-purple-700 transition-colors"
+                      >
+                        Mulai
+                      </button>
+                    )}
+                    {!readOnly && !req.isRoutineParent && (req.status === 'in_progress' || req.status === 'assigned') && (
+                      <button
+                        onClick={() => { setSelectedRequest(req); setActionModal('done'); }}
+                        className="px-3 py-1.5 bg-green-600 text-white font-semibold rounded-lg text-xs hover:bg-green-700 transition-colors"
+                      >
+                        Selesai
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
 
           <div className="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-between">
             <span className="text-sm text-slate-500">

@@ -321,7 +321,7 @@ export default function AssetsClient({ readOnly = false }: { readOnly?: boolean 
                     </select>
                   </div>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200">
@@ -353,13 +353,13 @@ export default function AssetsClient({ readOnly = false }: { readOnly?: boolean 
                               <div className="flex justify-end gap-2">
                                 <button 
                                   onClick={() => setEditDriver(d)}
-                                  className="p-1.5 text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors"
+                                  className="p-1.5 text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                                 >
                                   <Pencil className="w-4 h-4" />
                                 </button>
                                 <button 
                                   onClick={() => { setDeleteId(d.id); setDeleteType('driver'); }}
-                                  className="p-1.5 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors"
+                                  className="p-1.5 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
@@ -371,6 +371,47 @@ export default function AssetsClient({ readOnly = false }: { readOnly?: boolean 
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile Card List View (< md) */}
+                <div className="md:hidden divide-y divide-slate-100">
+                  {currentDrivers.length === 0 ? (
+                    <div className="p-6 text-center text-slate-500 font-medium">Data driver tidak ditemukan.</div>
+                  ) : currentDrivers.map(d => (
+                    <div key={d.id} className="p-4 space-y-3 bg-white">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${d.status === 'nonaktif' ? 'bg-slate-100 text-slate-400' : 'bg-indigo-100 text-indigo-600'}`}>
+                            <UserCircle className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-800 text-sm">{d.nama}</p>
+                            <p className="text-xs text-slate-500">{d.telepon || "Tidak ada telepon"}</p>
+                          </div>
+                        </div>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${d.status === 'aktif' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {d.status}
+                        </span>
+                      </div>
+                      {!readOnly && (
+                        <div className="flex justify-end gap-2 pt-1 border-t border-slate-50">
+                          <button 
+                            onClick={() => setEditDriver(d)}
+                            className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors flex items-center gap-1"
+                          >
+                            <Pencil className="w-3.5 h-3.5" /> Edit
+                          </button>
+                          <button 
+                            onClick={() => { setDeleteId(d.id); setDeleteType('driver'); }}
+                            className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Hapus
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
                 <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
                   <p className="text-sm text-slate-500">
                     Menampilkan <span className="font-bold text-slate-700">{processedDrivers.length > 0 ? (driverPage - 1) * itemsPerPage + 1 : 0}</span> hingga <span className="font-bold text-slate-700">{Math.min(driverPage * itemsPerPage, processedDrivers.length)}</span> dari <span className="font-bold text-slate-700">{processedDrivers.length}</span> driver
@@ -469,7 +510,7 @@ export default function AssetsClient({ readOnly = false }: { readOnly?: boolean 
                     </select>
                   </div>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200">
@@ -505,13 +546,13 @@ export default function AssetsClient({ readOnly = false }: { readOnly?: boolean 
                               <div className="flex justify-end gap-2">
                                 <button 
                                   onClick={() => setEditKendaraan(k)}
-                                  className="p-1.5 text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors"
+                                  className="p-1.5 text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                                 >
                                   <Pencil className="w-4 h-4" />
                                 </button>
                                 <button 
                                   onClick={() => { setDeleteId(k.id); setDeleteType('kendaraan'); }}
-                                  className="p-1.5 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors"
+                                  className="p-1.5 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
@@ -523,6 +564,51 @@ export default function AssetsClient({ readOnly = false }: { readOnly?: boolean 
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile Card List View (< md) */}
+                <div className="md:hidden divide-y divide-slate-100">
+                  {currentKendaraan.length === 0 ? (
+                    <div className="p-6 text-center text-slate-500 font-medium">Data kendaraan tidak ditemukan.</div>
+                  ) : currentKendaraan.map(k => (
+                    <div key={k.id} className="p-4 space-y-3 bg-white">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                            <Car className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-800 text-sm">{k.jenis}</p>
+                            <p className="text-xs font-semibold text-slate-600 tracking-wider">{k.nopol}</p>
+                          </div>
+                        </div>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${k.status === 'tersedia' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {k.status}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500 flex flex-wrap gap-x-4 gap-y-1 bg-slate-50 p-2.5 rounded-xl">
+                        {k.project && <p><span className="font-semibold text-slate-700">Project:</span> {k.project}</p>}
+                        {k.lokasi && <p><span className="font-semibold text-slate-700">Lokasi:</span> {k.lokasi}</p>}
+                      </div>
+                      {!readOnly && (
+                        <div className="flex justify-end gap-2 pt-1 border-t border-slate-50">
+                          <button 
+                            onClick={() => setEditKendaraan(k)}
+                            className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors flex items-center gap-1"
+                          >
+                            <Pencil className="w-3.5 h-3.5" /> Edit
+                          </button>
+                          <button 
+                            onClick={() => { setDeleteId(k.id); setDeleteType('kendaraan'); }}
+                            className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Hapus
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
                 <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
                   <p className="text-sm text-slate-500">
                     Menampilkan <span className="font-bold text-slate-700">{processedKendaraan.length > 0 ? (kendaraanPage - 1) * itemsPerPage + 1 : 0}</span> hingga <span className="font-bold text-slate-700">{Math.min(kendaraanPage * itemsPerPage, processedKendaraan.length)}</span> dari <span className="font-bold text-slate-700">{processedKendaraan.length}</span> kendaraan

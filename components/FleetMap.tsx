@@ -108,7 +108,8 @@ export default function FleetMap({ vehicles, selectedVehicleSN }: { vehicles: Da
   const markers = validVehicles.map(v => ({ lat: v.latitude!, lng: v.longitude! }));
 
   return (
-    <div style={{ height: '500px', width: '100%', borderRadius: '1rem', overflow: 'hidden', position: 'relative', zIndex: 0 }}>
+    <div className="h-[320px] sm:h-[420px] md:h-[500px] w-full rounded-2xl overflow-hidden relative z-0">
+
       <MapContainer 
         center={[-7.250445, 112.768845]} // Default center (Surabaya)
         zoom={10} 

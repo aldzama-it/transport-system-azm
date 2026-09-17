@@ -41,7 +41,7 @@ export default function UserMenu({ user }: UserMenuProps) {
     <div className="relative" ref={menuRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 focus:outline-none rounded-full pr-1 pl-4 py-1 hover:bg-slate-50 transition-colors"
+        className="flex items-center gap-3 focus:outline-none rounded-full pr-1 pl-3 sm:pl-4 py-1 hover:bg-slate-50 transition-colors min-h-[44px]"
         title={user.name || "User"}
       >
         <div className="hidden sm:flex flex-col items-end">
@@ -54,11 +54,14 @@ export default function UserMenu({ user }: UserMenuProps) {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
-            <p className="text-sm font-bold text-slate-900 truncate">{user.name}</p>
-            <p className="text-xs font-medium text-slate-500 capitalize">{user.role || 'Staff'}</p>
-          </div>
+        <>
+          <div className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-[1px] sm:hidden" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+              <p className="text-sm font-bold text-slate-900 truncate">{user.name}</p>
+              <p className="text-xs font-medium text-slate-500 capitalize">{user.role || 'Staff'}</p>
+            </div>
+
           <div className="py-2">
             <Link 
               href="/dashboard" 
@@ -89,7 +92,9 @@ export default function UserMenu({ user }: UserMenuProps) {
             </button>
           </div>
         </div>
+      </>
       )}
     </div>
+
   );
 }

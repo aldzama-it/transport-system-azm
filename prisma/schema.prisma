@@ -92,6 +92,10 @@ model Request {
   routineRequest   RoutineRequest? @relation(fields: [routineRequestId], references: [id])
 
   @@index([status])
+  @@index([tglMulai])
+  @@index([noForm])
+  @@index([driverId])
+  @@index([kendaraanId])
 }
 
 model RequestHistory {
@@ -129,4 +133,8 @@ model RoutineRequest {
 
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+
+  @@index([status])
+  @@index([startDate])
+  @@index([noForm])
 }

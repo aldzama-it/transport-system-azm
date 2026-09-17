@@ -13,9 +13,9 @@ export default async function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo - Left */}
-          <Link href="/" className="flex items-center space-x-2.5 text-slate-800 hover:text-indigo-700 transition">
+          <Link href="/" className="flex items-center space-x-2.5 text-slate-800 hover:text-indigo-700 transition min-h-[44px] py-1">
             <div className="flex items-center justify-center shrink-0">
-              <Image src="/Symbol.png" alt="Logo" width={200} height={200} className="object-contain w-auto h-10" />
+              <Image src="/Symbol.png" alt="Logo" width={200} height={200} className="object-contain w-auto h-9 sm:h-10" />
             </div>
             <span className="hidden sm:inline font-extrabold text-xl tracking-tight">Transport Aldzama</span>
           </Link>
@@ -27,12 +27,13 @@ export default async function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="inline-flex items-center justify-center px-5 py-2 border border-transparent rounded-full shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="inline-flex items-center justify-center px-4 sm:px-5 py-2 border border-transparent rounded-full shadow-sm text-xs sm:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 min-h-[40px]"
               >
                 Staff Login
               </Link>
             )}
           </div>
+
         </div>
       </div>
     </nav>

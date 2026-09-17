@@ -1,36 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { assignRequest } from "@/lib/requests";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { prisma } from "@/lib/prisma";
+import { apiError, apiForbidden, apiSuccess, apiUnauthorized, apiValidationError } from "@/lib/api-response";
+import { assignRequestSchema } from "@/lib/validators";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role === "staff_transport") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!session) {
+      return apiUnauthorized();
+    }
+
+    const userRole = (session.user as any)?.role;
+    if (!["admin", "staff_transport"].includes(userRole)) {
+      return apiForbidden("Akses ditolak. Fitur penugasan hanya untuk Admin dan Staff Transport.");
     }
 
     const resolvedParams = await params;
     const id = parseInt(resolvedParams.id, 10);
-    if (isNaN(id)) return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
+    if (isNaN(id)) return apiError("ID pengajuan tidak valid", 400);
 
     const body = await req.json();
-    const { driverId, kendaraanId, catatan } = body;
-
-    if (!driverId || !kendaraanId) {
-      return NextResponse.json({ error: "Driver dan Kendaraan wajib dipilih" }, { status: 400 });
+    const validation = assignRequestSchema.safeParse(body);
+    if (!validation.success) {
+      return apiValidationError(validation.error);
     }
 
-    let finalDriverId = parseInt(driverId, 10);
-    if (isNaN(finalDriverId)) {
-      return NextResponse.json({ error: "Driver tidak valid" }, { status: 400 });
-    }
+    const { driverId, kendaraanId, catatan } = validation.data;
+    const staffId = parseInt((session.user as any).id, 10);
 
-    const request = await assignRequest(id, parseInt(session.user.id, 10), finalDriverId, parseInt(kendaraanId, 10), catatan);
+    const request = await assignRequest(id, staffId, driverId, kendaraanId, catatan);
     
-    return NextResponse.json({ success: true, data: request });
+    return apiSuccess(request);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Terjadi kesalahan pada server" }, { status: 500 });
+    console.error("Error assigning request:", error);
+    return apiError(error.message || "Terjadi kesalahan pada server saat assign driver dan kendaraan", 500);
   }
 }

@@ -287,7 +287,7 @@ export async function finishRequest(id: number, staffId: number) {
   });
 }
 
-export async function cancelRequest(id: number, alasanCancel: string) {
+export async function cancelRequest(id: number, alasanCancel: string, staffId?: number) {
   return await prisma.$transaction(async (tx) => {
     const req = await tx.request.update({
       where: { id },
@@ -297,7 +297,8 @@ export async function cancelRequest(id: number, alasanCancel: string) {
         history: {
           create: {
             status: RequestStatus.cancelled,
-            catatan: `Dibatalkan oleh pemohon: ${alasanCancel}`
+            staffId: staffId || null,
+            catatan: `Dibatalkan: ${alasanCancel}`
           }
         }
       }

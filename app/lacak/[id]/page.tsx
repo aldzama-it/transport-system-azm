@@ -104,22 +104,22 @@ export default function TrackingDetail() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div className="max-w-6xl mx-auto py-4 sm:py-8 px-3 sm:px-6 lg:px-8">
       <HomeTabs />
 
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden relative mt-8">
-          <div className="bg-slate-50 px-6 sm:px-8 py-6 border-b border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 relative z-20">
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden relative mt-4 sm:mt-8">
+          <div className="bg-slate-50 px-4 sm:px-8 py-4 sm:py-6 border-b border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 relative z-20">
             <div>
               <button
                 onClick={() => router.push("/lacak")}
-                className="text-sm text-indigo-600 font-medium hover:text-indigo-800 mb-2 inline-block"
+                className="text-xs sm:text-sm text-indigo-600 font-medium hover:text-indigo-800 mb-1 sm:mb-2 inline-block"
               >
                 &larr; Kembali ke pencarian
               </button>
-              <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-                {selectedRequest.noForm}
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${(statusConfig[selectedRequest.status] || statusConfig.pending).color}`}>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex flex-wrap items-center gap-2 sm:gap-3">
+                <span>{selectedRequest.noForm}</span>
+                <span className={`inline-flex items-center px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm font-semibold border ${(statusConfig[selectedRequest.status] || statusConfig.pending).color}`}>
                   {(statusConfig[selectedRequest.status] || statusConfig.pending).label}
                 </span>
               </h2>
@@ -128,14 +128,14 @@ export default function TrackingDetail() {
             {(selectedRequest.status === "pending" || selectedRequest.status === "granted") && (
               <button
                 onClick={() => setIsCancelModalOpen(true)}
-                className="px-4 py-2 border-2 border-red-200 text-red-600 font-semibold rounded-full hover:bg-red-50 focus:ring-2 focus:ring-red-500 transition-colors"
+                className="px-3.5 py-2 border-2 border-red-200 text-red-600 font-semibold rounded-full hover:bg-red-50 focus:ring-2 focus:ring-red-500 transition-colors text-xs sm:text-sm self-start sm:self-auto min-h-[40px]"
               >
                 Batalkan Permintaan
               </button>
             )}
           </div>
 
-          <div className="p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="p-4 sm:p-8 grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
             <div className="lg:col-span-2 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">

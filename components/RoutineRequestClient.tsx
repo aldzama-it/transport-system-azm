@@ -129,32 +129,32 @@ export default function RoutineRequestClient() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-4">
+    <div className="max-w-4xl mx-auto py-6 sm:py-12 px-3 sm:px-6 lg:px-8">
+      <div className="text-center mb-6 sm:mb-12">
+        <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2 sm:mb-4">
           Pengajuan <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400">Jadwal Rutin</span>
         </h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+        <p className="text-sm sm:text-lg text-slate-600 max-w-2xl mx-auto">
           Isi form di bawah ini untuk mengajukan penggunaan kendaraan rutin secara otomatis tanpa perlu mengisi form setiap hari.
         </p>
       </div>
 
       <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 transition-all hover:shadow-2xl">
-        <div className="h-32 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-400 relative">
+        <div className="h-20 sm:h-32 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-400 relative">
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-          <div className="absolute -bottom-8 left-8 bg-white p-4 rounded-2xl shadow-lg">
-            <Repeat className="h-8 w-8 text-indigo-600" />
+          <div className="absolute -bottom-6 sm:-bottom-8 left-6 sm:left-8 bg-white p-3 sm:p-4 rounded-2xl shadow-lg">
+            <Repeat className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600" />
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 sm:p-8 pt-12 md:p-12 md:pt-16 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-8 pt-10 md:p-12 md:pt-16 space-y-6 sm:space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {/* DATA PEMOHON */}
-            <div className="space-y-6">
-              <h3 className="text-xl font-bold text-slate-800 border-b pb-2">Data Pemohon & Jadwal</h3>
+            <div className="space-y-4 sm:space-y-6">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-800 border-b pb-2">Data Pemohon & Jadwal</h3>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Nama Lengkap</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Nama Lengkap</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <User className="h-5 w-5 text-slate-400" />
@@ -165,14 +165,14 @@ export default function RoutineRequestClient() {
                     required
                     value={formData.requester}
                     onChange={handleChange}
-                    className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white"
+                    className="block w-full pl-10 pr-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white text-base sm:text-sm"
                     placeholder="Masukkan nama Anda"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Divisi / Departemen</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Divisi / Departemen</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-30">
                     <Building className="h-5 w-5 text-slate-400" />
@@ -186,14 +186,14 @@ export default function RoutineRequestClient() {
                       setShowDivisiDropdown(true);
                     }}
                     onFocus={() => setShowDivisiDropdown(true)}
-                    className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white relative z-20"
+                    className="block w-full pl-10 pr-10 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white relative z-20 text-base sm:text-sm"
                     placeholder="Pilih atau ketik divisi..."
                     autoComplete="off"
                   />
                   <button
                     type="button"
                     onClick={() => setShowDivisiDropdown(!showDivisiDropdown)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center z-30 focus:outline-none"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center z-30 focus:outline-none min-h-[44px] min-w-[44px] justify-center"
                   >
                     <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${showDivisiDropdown ? 'rotate-180' : ''}`} />
                   </button>
@@ -233,12 +233,12 @@ export default function RoutineRequestClient() {
             </div>
 
             {/* DETAIL RUTINITAS */}
-            <div className="space-y-6">
-              <h3 className="text-xl font-bold text-slate-800 border-b pb-2">Detail Rute & Waktu</h3>
+            <div className="space-y-4 sm:space-y-6">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-800 border-b pb-2">Detail Rute & Waktu</h3>
 
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Titik Jemput</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Titik Jemput</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <MapPin className="h-5 w-5 text-slate-400" />
@@ -249,14 +249,14 @@ export default function RoutineRequestClient() {
                       required
                       value={formData.pickup}
                       onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white"
+                      className="block w-full pl-10 pr-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white text-base sm:text-sm"
                       placeholder="Lokasi penjemputan awal"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Titik Tujuan</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Titik Tujuan</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <MapPin className="h-5 w-5 text-slate-400" />
@@ -267,7 +267,7 @@ export default function RoutineRequestClient() {
                       required
                       value={formData.destination}
                       onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white"
+                      className="block w-full pl-10 pr-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white text-base sm:text-sm"
                       placeholder="Lokasi tujuan akhir"
                     />
                   </div>
@@ -275,32 +275,31 @@ export default function RoutineRequestClient() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Periode Jadwal</label>
-                <div className="flex gap-2 items-center">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Periode Jadwal</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <input
                     type="date"
                     name="startDate"
                     required
                     value={formData.startDate}
                     onChange={handleChange}
-                    className="block w-1/2 px-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
+                    className="block w-full px-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-base sm:text-sm"
                   />
-                  <span className="text-slate-400 font-medium">s/d</span>
                   <input
                     type="date"
                     name="endDate"
                     required
                     value={formData.endDate}
                     onChange={handleChange}
-                    className="block w-1/2 px-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
+                    className="block w-full px-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-base sm:text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Jam Operasional Harian</label>
-                <div className="flex gap-2">
-                  <div className="w-1/2 relative">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Jam Operasional Harian</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Clock className="h-4 w-4 text-slate-400" />
                     </div>
@@ -310,10 +309,10 @@ export default function RoutineRequestClient() {
                       required
                       value={formData.departureTime}
                       onChange={handleChange}
-                      className="block w-full pl-9 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
+                      className="block w-full pl-9 pr-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-base sm:text-sm"
                     />
                   </div>
-                  <div className="w-1/2 relative">
+                  <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Clock className="h-4 w-4 text-slate-400" />
                     </div>
@@ -323,28 +322,28 @@ export default function RoutineRequestClient() {
                       required
                       value={formData.returnTime}
                       onChange={handleChange}
-                      className="block w-full pl-9 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-sm"
+                      className="block w-full pl-9 pr-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-base sm:text-sm"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Tipe Pengulangan</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Tipe Pengulangan</label>
                 <select
                   name="repeatType"
                   value={formData.repeatType}
                   onChange={handleChange}
-                  className="block w-full px-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700"
+                  className="block w-full px-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-base sm:text-sm"
                 >
                   <option value="daily">Setiap Hari Penuh (Senin - Minggu)</option>
                   <option value="weekdays">Hari Kerja Saja (Senin - Jumat)</option>
-                  <option value="weekly">1x Seminggu (Setiap minggu di hari yang sama dengan Tanggal Mulai)</option>
+                  <option value="weekly">1x Seminggu (Sesuai tgl mulai)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Tujuan Penggunaan</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Tujuan Penggunaan</label>
                 <div className="relative">
                   <div className="absolute top-3 left-3 pointer-events-none">
                     <FileText className="h-5 w-5 text-slate-400" />
@@ -355,7 +354,7 @@ export default function RoutineRequestClient() {
                     required
                     value={formData.notes}
                     onChange={handleChange}
-                    className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none"
+                    className="block w-full pl-10 pr-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none text-base sm:text-sm"
                     placeholder="Jelaskan tujuan pemakaian..."
                   />
                 </div>
@@ -363,6 +362,7 @@ export default function RoutineRequestClient() {
 
             </div>
           </div>
+
 
           <div className="pt-4 border-t border-slate-100">
             <h3 className="text-xl font-bold text-slate-800 mb-4">Dokumen Pendukung</h3>
