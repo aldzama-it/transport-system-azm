@@ -103,32 +103,32 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-6 sm:py-12 px-3 sm:px-6 lg:px-8">
-      <div className="text-center mb-6 sm:mb-12">
-        <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2 sm:mb-4">
+    <div className="max-w-4xl mx-auto py-2 sm:py-8">
+      <div className="text-center mb-6 sm:mb-10">
+        <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2 sm:mb-3">
           Pengajuan Kendaraan <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400">Lebih Mudah</span>
         </h1>
-        <p className="text-sm sm:text-lg text-slate-600 max-w-2xl mx-auto">
+        <p className="text-xs sm:text-base text-slate-600 max-w-xl mx-auto leading-relaxed">
           Isi form di bawah ini untuk Pengajuan penggunaan kendaraan operasional PT ALDZAMA. Cepat, mudah, dan transparan.
         </p>
       </div>
 
       <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 transition-all hover:shadow-2xl">
         {/* Banner */}
-        <div className="h-20 sm:h-32 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-400 relative">
+        <div className="h-16 sm:h-28 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-400 relative">
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-          <div className="absolute -bottom-6 sm:-bottom-8 left-6 sm:left-8 bg-white p-3 sm:p-4 rounded-2xl shadow-lg">
+          <div className="absolute -bottom-5 sm:-bottom-7 left-5 sm:left-8 bg-white p-2.5 sm:p-4 rounded-2xl shadow-lg border border-slate-100">
             <CarFront className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600" />
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-8 pt-10 md:p-12 md:pt-16 space-y-6 sm:space-y-8">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-8 pt-10 sm:pt-14 md:p-12 md:pt-16 space-y-6 sm:space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6">
-              <h3 className="text-lg sm:text-xl font-bold text-slate-800 border-b pb-2">Data Pemohon</h3>
+              <h3 className="text-base sm:text-xl font-bold text-slate-800 border-b pb-2">Data Pemohon</h3>
               
               <div>
-                <label htmlFor="namaPemohon" className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">
+                <label htmlFor="namaPemohon" className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
                   Nama Lengkap
                 </label>
                 <div className="relative">
@@ -147,7 +147,7 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
               </div>
 
               <div>
-                <label htmlFor="divisi" className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">
+                <label htmlFor="divisi" className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
                   Divisi / Departemen
                 </label>
                 <div className="relative">
@@ -214,13 +214,13 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
             </div>
 
             <div className="space-y-4 sm:space-y-6">
-              <h3 className="text-lg sm:text-xl font-bold text-slate-800 border-b pb-2">Detail Penggunaan</h3>
+              <h3 className="text-base sm:text-xl font-bold text-slate-800 border-b pb-2">Detail Penggunaan</h3>
               
               <div className="grid grid-cols-1 gap-4 sm:gap-6">
                 <div>
-                  <div className="flex justify-between items-end mb-1.5 sm:mb-2">
-                    <label htmlFor="tglMulai" className="block text-sm font-medium text-slate-700">Tgl & Jam Mulai</label>
-                    <span className="text-xs text-slate-400 font-normal">Jam opsional</span>
+                  <div className="flex justify-between items-end mb-1.5">
+                    <label htmlFor="tglMulai" className="block text-xs sm:text-sm font-semibold text-slate-700">Tgl & Jam Mulai</label>
+                    <span className="text-[11px] sm:text-xs text-slate-400 font-normal">Jam opsional</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <input
@@ -239,9 +239,9 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between items-end mb-1.5 sm:mb-2">
-                    <label htmlFor="tglSelesai" className="block text-sm font-medium text-slate-700">Tgl & Jam Selesai</label>
-                    <span className="text-xs text-slate-400 font-normal">Jam opsional</span>
+                  <div className="flex justify-between items-end mb-1.5">
+                    <label htmlFor="tglSelesai" className="block text-xs sm:text-sm font-semibold text-slate-700">Tgl & Jam Selesai</label>
+                    <span className="text-[11px] sm:text-xs text-slate-400 font-normal">Jam opsional</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <input
@@ -258,16 +258,15 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                       className="block w-full px-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 text-slate-700 text-base sm:text-sm"
                     />
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">
+                  <p className="mt-1.5 text-[11px] sm:text-xs text-slate-500">
                     <span className="font-semibold text-indigo-600">* Catatan:</span> Jika pengajuan hanya 1 hari, silakan isi dengan tanggal yang sama.
                   </p>
                 </div>
               </div>
 
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                  <label htmlFor="titikJemput" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="titikJemput" className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
                     Titik Jemput
                   </label>
                   <div className="relative">
@@ -279,14 +278,14 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                       id="titikJemput"
                       required
                       rows={3}
-                      className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none"
+                      className="block w-full pl-10 pr-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none text-base sm:text-sm"
                       placeholder="Lokasi penjemputan awal..."
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="tujuan" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="tujuan" className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
                     Titik Tujuan
                   </label>
                   <div className="relative">
@@ -298,7 +297,7 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                       id="tujuan"
                       required
                       rows={3}
-                      className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none text-base sm:text-sm"
+                      className="block w-full pl-10 pr-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none text-base sm:text-sm"
                       placeholder="Tuliskan tujuan dengan spesifik..."
                     />
                   </div>
@@ -306,7 +305,7 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
               </div>
 
               <div>
-                <label htmlFor="alasan" className="block text-sm font-medium text-slate-700 mb-2">
+                <label htmlFor="alasan" className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
                   Alasan / Keperluan
                 </label>
                 <div className="relative">
@@ -315,7 +314,7 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
                     id="alasan"
                     required
                     rows={3}
-                    className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none text-base sm:text-sm"
+                    className="block w-full px-3.5 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all bg-slate-50 hover:bg-white focus:bg-white resize-none text-base sm:text-sm"
                     placeholder="Contoh: Meeting rutin bulanan dengan client..."
                   />
                 </div>
@@ -325,30 +324,30 @@ export default function FormView({ onSwitchToTracking }: { onSwitchToTracking: (
           </div>
 
           <div className="pt-4 border-t border-slate-100">
-            <h3 className="text-xl font-bold text-slate-800 mb-4">Dokumen Pendukung</h3>
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 transition-all bg-slate-50 group cursor-pointer relative overflow-hidden">
+            <h3 className="text-base sm:text-xl font-bold text-slate-800 mb-3">Dokumen Pendukung</h3>
+            <div className="mt-1 flex justify-center px-4 py-5 sm:px-6 sm:py-6 border-2 border-slate-300 border-dashed rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 transition-all bg-slate-50 group cursor-pointer relative overflow-hidden">
               <div className="space-y-2 text-center relative z-10">
-                <UploadCloud className="mx-auto h-12 w-12 text-slate-400 group-hover:text-indigo-500 transition-colors" />
-                <div className="flex text-sm text-slate-600 justify-center">
-                  <label htmlFor="buktiFile" className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none px-2 py-1 shadow-sm border border-slate-200 transition-colors">
+                <UploadCloud className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                <div className="flex text-xs sm:text-sm text-slate-600 justify-center">
+                  <label htmlFor="buktiFile" className="relative cursor-pointer bg-white rounded-lg font-bold text-indigo-600 hover:text-indigo-500 focus-within:outline-none px-3 py-1.5 shadow-sm border border-slate-200 transition-colors">
                     <span>{selectedFile ? 'Ganti file' : 'Pilih file persetujuan'}</span>
                     <input id="buktiFile" name="buktiFile" type="file" className="sr-only" required accept="image/*,.pdf" onChange={handleFileChange} />
                   </label>
                 </div>
                 {selectedFile ? (
-                  <p className="text-sm font-semibold text-indigo-700">{selectedFile.name}</p>
+                  <p className="text-xs sm:text-sm font-semibold text-indigo-700 break-all">{selectedFile.name}</p>
                 ) : (
-                  <p className="text-xs text-slate-500">PDF atau Gambar (Maks. 10MB)</p>
+                  <p className="text-[11px] sm:text-xs text-slate-500">PDF atau Gambar (Maks. 10MB)</p>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="pt-6">
+          <div className="pt-4 sm:pt-6">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-sm text-lg font-bold text-white bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed transform active:scale-[0.98]"
+              className="w-full flex justify-center items-center min-h-[48px] py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-base sm:text-lg font-bold text-white bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed transform active:scale-[0.98]"
             >
               {isSubmitting ? "Mengirim..." : "Ajukan Permintaan Sekarang"}
             </button>
