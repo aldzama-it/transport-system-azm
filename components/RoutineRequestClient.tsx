@@ -129,32 +129,32 @@ export default function RoutineRequestClient() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-6 sm:py-12 px-3 sm:px-6 lg:px-8">
-      <div className="text-center mb-6 sm:mb-12">
-        <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2 sm:mb-4">
+    <div className="max-w-4xl mx-auto py-2 sm:py-8">
+      <div className="text-center mb-6 sm:mb-10">
+        <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2 sm:mb-3">
           Pengajuan <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400">Jadwal Rutin</span>
         </h1>
-        <p className="text-sm sm:text-lg text-slate-600 max-w-2xl mx-auto">
+        <p className="text-xs sm:text-base text-slate-600 max-w-xl mx-auto leading-relaxed">
           Isi form di bawah ini untuk mengajukan penggunaan kendaraan rutin secara otomatis tanpa perlu mengisi form setiap hari.
         </p>
       </div>
 
       <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 transition-all hover:shadow-2xl">
-        <div className="h-20 sm:h-32 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-400 relative">
+        <div className="h-16 sm:h-28 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-400 relative">
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-          <div className="absolute -bottom-6 sm:-bottom-8 left-6 sm:left-8 bg-white p-3 sm:p-4 rounded-2xl shadow-lg">
+          <div className="absolute -bottom-5 sm:-bottom-7 left-5 sm:left-8 bg-white p-2.5 sm:p-4 rounded-2xl shadow-lg border border-slate-100">
             <Repeat className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600" />
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-8 pt-10 md:p-12 md:pt-16 space-y-6 sm:space-y-8">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-8 pt-10 sm:pt-14 md:p-12 md:pt-16 space-y-6 sm:space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {/* DATA PEMOHON */}
             <div className="space-y-4 sm:space-y-6">
-              <h3 className="text-lg sm:text-xl font-bold text-slate-800 border-b pb-2">Data Pemohon & Jadwal</h3>
+              <h3 className="text-base sm:text-xl font-bold text-slate-800 border-b pb-2">Data Pemohon & Jadwal</h3>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Nama Lengkap</label>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Nama Lengkap</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <User className="h-5 w-5 text-slate-400" />
@@ -172,7 +172,7 @@ export default function RoutineRequestClient() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Divisi / Departemen</label>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Divisi / Departemen</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-30">
                     <Building className="h-5 w-5 text-slate-400" />
@@ -234,11 +234,11 @@ export default function RoutineRequestClient() {
 
             {/* DETAIL RUTINITAS */}
             <div className="space-y-4 sm:space-y-6">
-              <h3 className="text-lg sm:text-xl font-bold text-slate-800 border-b pb-2">Detail Rute & Waktu</h3>
+              <h3 className="text-base sm:text-xl font-bold text-slate-800 border-b pb-2">Detail Rute & Waktu</h3>
 
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Titik Jemput</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Titik Jemput</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <MapPin className="h-5 w-5 text-slate-400" />
@@ -256,7 +256,7 @@ export default function RoutineRequestClient() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Titik Tujuan</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Titik Tujuan</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <MapPin className="h-5 w-5 text-slate-400" />
@@ -275,7 +275,7 @@ export default function RoutineRequestClient() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Periode Jadwal</label>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Periode Jadwal</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <input
                     type="date"
@@ -297,7 +297,7 @@ export default function RoutineRequestClient() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Jam Operasional Harian</label>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Jam Operasional Harian</label>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -329,7 +329,7 @@ export default function RoutineRequestClient() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Tipe Pengulangan</label>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Tipe Pengulangan</label>
                 <select
                   name="repeatType"
                   value={formData.repeatType}
@@ -343,7 +343,7 @@ export default function RoutineRequestClient() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">Tujuan Penggunaan</label>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">Tujuan Penggunaan</label>
                 <div className="relative">
                   <div className="absolute top-3 left-3 pointer-events-none">
                     <FileText className="h-5 w-5 text-slate-400" />
@@ -365,30 +365,30 @@ export default function RoutineRequestClient() {
 
 
           <div className="pt-4 border-t border-slate-100">
-            <h3 className="text-xl font-bold text-slate-800 mb-4">Dokumen Pendukung</h3>
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 transition-all bg-slate-50 group cursor-pointer relative overflow-hidden">
+            <h3 className="text-base sm:text-xl font-bold text-slate-800 mb-3">Dokumen Pendukung</h3>
+            <div className="mt-1 flex justify-center px-4 py-5 sm:px-6 sm:py-6 border-2 border-slate-300 border-dashed rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 transition-all bg-slate-50 group cursor-pointer relative overflow-hidden">
               <div className="space-y-2 text-center relative z-10">
-                <UploadCloud className="mx-auto h-12 w-12 text-slate-400 group-hover:text-indigo-500 transition-colors" />
-                <div className="flex text-sm text-slate-600 justify-center">
-                  <label htmlFor="buktiFile" className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none px-2 py-1 shadow-sm border border-slate-200 transition-colors">
+                <UploadCloud className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                <div className="flex text-xs sm:text-sm text-slate-600 justify-center">
+                  <label htmlFor="buktiFile" className="relative cursor-pointer bg-white rounded-lg font-bold text-indigo-600 hover:text-indigo-500 focus-within:outline-none px-3 py-1.5 shadow-sm border border-slate-200 transition-colors">
                     <span>{selectedFile ? 'Ganti file' : 'Pilih file persetujuan'}</span>
                     <input id="buktiFile" name="buktiFile" type="file" className="sr-only" required accept="image/*,.pdf" onChange={handleFileChange} />
                   </label>
                 </div>
                 {selectedFile ? (
-                  <p className="text-sm font-semibold text-indigo-700">{selectedFile.name}</p>
+                  <p className="text-xs sm:text-sm font-semibold text-indigo-700 break-all">{selectedFile.name}</p>
                 ) : (
-                  <p className="text-xs text-slate-500">PDF atau Gambar (Maks. 10MB)</p>
+                  <p className="text-[11px] sm:text-xs text-slate-500">PDF atau Gambar (Maks. 10MB)</p>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="pt-6">
+          <div className="pt-4 sm:pt-6">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-sm text-lg font-bold text-white bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed transform active:scale-[0.98]"
+              className="w-full flex justify-center items-center min-h-[48px] py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-base sm:text-lg font-bold text-white bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed transform active:scale-[0.98]"
             >
               {isSubmitting ? "Mengirim Jadwal..." : "Ajukan Jadwal Rutin"}
             </button>

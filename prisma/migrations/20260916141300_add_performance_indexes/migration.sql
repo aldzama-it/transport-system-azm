@@ -1,6 +1,4 @@
--- CreateIndex
-CREATE INDEX `Request_status_idx` ON `Request`(`status`);
-
+-- Index Request_status_idx already created in init migration
 -- CreateIndex
 CREATE INDEX `Request_tglMulai_idx` ON `Request`(`tglMulai`);
 

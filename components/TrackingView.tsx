@@ -67,7 +67,7 @@ export default function TrackingView({ initialSearchQuery = "" }: { initialSearc
 
 
   return (
-    <div className="max-w-6xl mx-auto py-6 sm:py-12 px-3 sm:px-6 lg:px-8">
+    <div className="max-w-6xl mx-auto py-2 sm:py-8">
       <div className="text-center mb-6 sm:mb-12">
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2 sm:mb-4">Lacak Permintaan</h1>
         <p className="text-xs sm:text-base text-slate-600 max-w-2xl mx-auto">

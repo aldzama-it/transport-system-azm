@@ -49,64 +49,68 @@ export default async function SuccessPage({ searchParams }: { searchParams: Prom
   }
 
   return (
-    <div className="max-w-3xl mx-auto py-16 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
-      <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 text-center w-full transform transition-all duration-500 hover:shadow-2xl border border-indigo-50">
-        <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 mb-6">
-          <CarFront className="h-10 w-10 text-green-600" />
+    <div className="max-w-2xl mx-auto py-6 sm:py-12 px-4 flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="bg-white rounded-3xl shadow-xl p-5 sm:p-10 text-center w-full border border-slate-100">
+        <div className="mx-auto flex items-center justify-center h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-emerald-100 mb-4 sm:mb-6 shrink-0">
+          <CarFront className="h-8 w-8 sm:h-10 sm:w-10 text-emerald-600" />
         </div>
-        <h2 className="text-3xl font-extrabold text-slate-900 mb-4">{isRoutine ? "Pengajuan Rutin Terkirim!" : "Permintaan Terkirim!"}</h2>
-        <p className="text-lg text-slate-600 mb-6">
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-3">{isRoutine ? "Pengajuan Rutin Terkirim!" : "Permintaan Terkirim!"}</h2>
+        <p className="text-sm sm:text-base text-slate-600 mb-6 max-w-md mx-auto leading-relaxed">
           Terima kasih, pengajuan kendaraan Anda telah kami terima. Harap simpan nomor form berikut untuk referensi dan pelacakan status.
         </p>
 
-        <div className="bg-slate-50 p-6 rounded-xl inline-block border border-slate-200 mb-6 w-full sm:w-auto min-w-[20rem] text-left">
-          <p className="text-sm text-slate-500 font-medium mb-1">{isRoutine ? "Nomor Form (Rutin):" : "Nomor Form:"}</p>
-          <p className="text-base sm:text-xl md:text-2xl font-black text-indigo-700 tracking-widest mb-4 whitespace-nowrap">{noForm}</p>
+        <div className="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200/80 mb-6 w-full max-w-md mx-auto text-center shadow-inner">
+          <p className="text-xs sm:text-sm text-slate-500 font-semibold mb-1.5 uppercase tracking-wider">{isRoutine ? "Nomor Form (Rutin)" : "Nomor Form"}</p>
+          <div className="mb-4">
+            <span className="text-xs sm:text-base md:text-lg font-black text-indigo-700 tracking-tight whitespace-nowrap bg-indigo-50/90 py-2 px-3 sm:px-4 rounded-xl border border-indigo-100/80 select-all inline-block max-w-full overflow-x-auto font-sans">
+              {noForm}
+            </span>
+          </div>
 
           {isRoutine ? (
             <>
-              <p className="text-sm text-slate-500 font-medium mb-1">Periode Rutin:</p>
-              <p className="text-md font-semibold text-slate-800">
+              <p className="text-xs sm:text-sm text-slate-500 font-semibold mb-1 uppercase tracking-wider">Periode Rutin</p>
+              <p className="text-sm sm:text-base font-bold text-slate-800">
                 {format(new Date(data.startDate), "dd MMM yyyy")} - {format(new Date(data.endDate), "dd MMM yyyy")}
               </p>
             </>
           ) : (
             <>
-              <p className="text-sm text-slate-500 font-medium mb-1">Tanggal Penggunaan:</p>
-              <p className="text-md font-semibold text-slate-800">
+              <p className="text-xs sm:text-sm text-slate-500 font-semibold mb-1 uppercase tracking-wider">Tanggal Penggunaan</p>
+              <p className="text-sm sm:text-base font-bold text-slate-800">
                 {format(new Date(data.tglMulai), "dd MMM yyyy HH:mm")}
               </p>
             </>
           )}
         </div>
 
-        <div className="bg-green-50 border border-green-200 rounded-xl p-5 mb-8 text-center w-full">
-          <p className="text-sm text-green-800 font-medium mb-4">
+        <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-4 sm:p-5 mb-6 text-center w-full max-w-md mx-auto">
+          <p className="text-xs sm:text-sm text-emerald-900 font-medium mb-3 leading-relaxed">
             Penting! Harap konfirmasi form yang telah diajukan ke WhatsApp Koordinator Transportasi agar bisa segera diproses.
           </p>
           <a
             href={`https://wa.me/6285732769920?text=${encodeURIComponent(waText)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#25D366] text-white rounded-full font-bold hover:bg-[#128C7E] transition-colors w-full sm:w-auto shadow-sm hover:shadow-md"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#25D366] text-white rounded-xl font-bold hover:bg-[#128C7E] transition-colors w-full shadow-sm hover:shadow-md text-sm sm:text-base min-h-[44px]"
           >
-            <MessageCircle className="w-5 h-5" />
+            <MessageCircle className="w-5 h-5 shrink-0" />
             Konfirmasi via WhatsApp
           </a>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
           <Link
             href={isRoutine ? "/request/routine" : "/"}
-            className="px-6 py-3 border border-slate-300 rounded-full text-slate-700 font-semibold hover:bg-slate-50 transition-colors inline-flex items-center justify-center gap-2"
+            className="w-full sm:w-1/2 px-5 py-3 border border-slate-300 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors inline-flex items-center justify-center gap-2 text-sm min-h-[44px]"
           >
              Ajukan Lagi
           </Link>
           <Link
-            href={`/?tab=track&noForm=${noForm}`}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-full font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+            href={`/lacak?noForm=${noForm}`}
+            className="w-full sm:w-1/2 px-5 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm min-h-[44px]"
           >
-            Lacak Sekarang <ArrowRight className="h-4 w-4" />
+            Lacak Sekarang <ArrowRight className="h-4 w-4 shrink-0" />
           </Link>
         </div>
       </div>
