@@ -1,27 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { apiError, apiForbidden, apiNotFound, apiSuccess, apiUnauthorized, apiValidationError } from "@/lib/api-response";
+import { denyRoutineRequestSchema } from "@/lib/validators";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    const userRole = (session?.user as any)?.role;
-    
-    if (!session || userRole === "staff_transport") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!session || !session.user) {
+      return apiUnauthorized();
+    }
+
+    const userRole = session.user.role;
+    if (!["admin", "koor_transport"].includes(userRole)) {
+      return apiForbidden("Akses ditolak. Fitur penolakan routine request hanya untuk Koordinator Transport dan Admin.");
     }
 
     const resolvedParams = await params;
     const id = parseInt(resolvedParams.id, 10);
-    if (isNaN(id)) return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
+    if (isNaN(id)) return apiError("ID tidak valid", 400);
 
     const body = await req.json();
-    const { alasanDeny } = body;
-
-    if (!alasanDeny) {
-      return NextResponse.json({ error: "Alasan penolakan wajib diisi" }, { status: 400 });
+    const validation = denyRoutineRequestSchema.safeParse(body);
+    if (!validation.success) {
+      return apiValidationError(validation.error);
     }
 
+    const { alasanDeny } = validation.data;
     const { prisma } = await import("@/lib/prisma");
 
     const routineRequest = await prisma.routineRequest.findUnique({
@@ -29,14 +34,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
 
     if (!routineRequest) {
-      return NextResponse.json({ error: "Form rutin tidak ditemukan" }, { status: 404 });
+      return apiNotFound("Form rutin tidak ditemukan");
     }
 
     if (routineRequest.status !== 'pending') {
-      return NextResponse.json({ error: "Hanya form dengan status pending yang dapat ditolak" }, { status: 400 });
+      return apiError("Hanya form dengan status pending yang dapat ditolak", 400);
     }
 
-    // Update status ke deny dan simpan alasan
     await prisma.routineRequest.update({
       where: { id },
       data: { 
@@ -45,9 +49,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       } as any
     });
 
-    return NextResponse.json({ success: true, message: "Form rutin berhasil ditolak" });
+    return apiSuccess({ message: "Form rutin berhasil ditolak" });
   } catch (error: any) {
     console.error("Error denying routine request:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan server", details: error.message }, { status: 500 });
+    return apiError("Terjadi kesalahan server saat menolak form rutin", 500);
   }
 }

@@ -1,28 +1,52 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createRoutineRequest, getAllRoutineRequests } from "@/lib/routineRequests";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { apiError, apiSuccess, apiValidationError } from "@/lib/api-response";
+import { createRoutineRequestSchema } from "@/lib/validators";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const routines = await getAllRoutineRequests();
-    return NextResponse.json({ success: true, data: routines });
+    return apiSuccess(routines);
   } catch (error: any) {
-    return NextResponse.json({ error: "Terjadi kesalahan server" }, { status: 500 });
+    console.error("Error fetching routine requests:", error);
+    return apiError("Terjadi kesalahan pada server", 500);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
+    const rawData = {
+      title: formData.get("title") as string,
+      requester: formData.get("requester") as string,
+      divisi: formData.get("divisi") as string,
+      project: (formData.get("project") as string) || undefined,
+      pickup: (formData.get("pickup") as string) || undefined,
+      destination: formData.get("destination") as string,
+      startDate: formData.get("startDate") as string,
+      endDate: formData.get("endDate") as string,
+      departureTime: formData.get("departureTime") as string,
+      returnTime: formData.get("returnTime") as string,
+      repeatType: (formData.get("repeatType") as string) || "weekly",
+      notes: (formData.get("notes") as string) || undefined,
+    };
 
     const file = formData.get("file") as File | null;
     if (!file) {
-      return NextResponse.json({ error: "Dokumen pendukung (file attach) wajib diupload" }, { status: 400 });
+      return apiError("Dokumen pendukung (file attach) wajib diupload", 400);
     }
     if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: "Ukuran file maksimal 10MB" }, { status: 400 });
+      return apiError("Ukuran file maksimal 10MB", 400);
     }
+
+    const validation = createRoutineRequestSchema.safeParse(rawData);
+    if (!validation.success) {
+      return apiValidationError(validation.error);
+    }
+
+    const data = validation.data;
 
     // Save the file
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -34,24 +58,24 @@ export async function POST(req: NextRequest) {
     await writeFile(path.join(uploadDir, filename), buffer);
 
     const result = await createRoutineRequest({
-      title: formData.get("title") as string,
-      requester: formData.get("requester") as string,
-      divisi: formData.get("divisi") as string,
-      project: (formData.get("project") as string) || undefined,
-      pickup: (formData.get("pickup") as string) || undefined,
-      destination: formData.get("destination") as string,
-      startDate: new Date(formData.get("startDate") as string),
-      endDate: new Date(formData.get("endDate") as string),
-      departureTime: formData.get("departureTime") as string,
-      returnTime: formData.get("returnTime") as string,
-      repeatType: formData.get("repeatType") as string,
-      notes: (formData.get("notes") as string) || undefined,
+      title: data.title,
+      requester: data.requester,
+      divisi: data.divisi,
+      project: data.project,
+      pickup: data.pickup,
+      destination: data.destination,
+      startDate: new Date(data.startDate),
+      endDate: new Date(data.endDate),
+      departureTime: data.departureTime,
+      returnTime: data.returnTime,
+      repeatType: data.repeatType,
+      notes: data.notes,
       buktiFileUrl: publicPath
     });
 
-    return NextResponse.json({ success: true, data: result }, { status: 201 });
+    return apiSuccess(result, undefined, 201);
   } catch (error: any) {
-    console.error(error);
-    return NextResponse.json({ error: "Gagal membuat routine request", details: error.message }, { status: 500 });
+    console.error("Error creating routine request:", error);
+    return apiError("Gagal membuat routine request", 500);
   }
 }

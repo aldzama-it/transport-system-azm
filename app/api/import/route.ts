@@ -1,34 +1,30 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as xlsx from "xlsx";
 import { parse, isValid } from "date-fns";
 import { RequestStatus } from "@prisma/client";
 import { toZonedTime } from "date-fns-tz";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { apiError, apiForbidden, apiSuccess, apiUnauthorized } from "@/lib/api-response";
 
 function parseDate(dateStr: string): Date | null {
   if (!dateStr) return null;
-  // Try DD/MM/YYYY HH:mm
   let parsed = parse(dateStr, "dd/MM/yyyy HH:mm", new Date());
   if (isValid(parsed)) return parsed;
-  // Try DD/MM/YYYY
   parsed = parse(dateStr, "dd/MM/yyyy", new Date());
   if (isValid(parsed)) return parsed;
   
-  // Try YYYY-MM-DD HH:mm
   parsed = parse(dateStr, "yyyy-MM-dd HH:mm", new Date());
   if (isValid(parsed)) return parsed;
-  // Try YYYY-MM-DD
   parsed = parse(dateStr, "yyyy-MM-dd", new Date());
   if (isValid(parsed)) return parsed;
   
-  // Also handle Excel serial dates if xlsx passes them as numbers
   if (!isNaN(Number(dateStr))) {
     const excelEpoch = new Date(Date.UTC(1899, 11, 30));
     return new Date(excelEpoch.getTime() + Number(dateStr) * 86400000);
   }
 
-  // Fallback to standard Date parser
-  // Append T00:00:00 to force local time parsing if it's just a date
   const forceLocal = dateStr.length === 10 && dateStr.includes("-") ? `${dateStr}T00:00:00` : dateStr;
   const d = new Date(forceLocal);
   if (!isNaN(d.getTime())) return d;
@@ -47,13 +43,34 @@ const statusMap: Record<string, RequestStatus> = {
   "done": RequestStatus.done
 };
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return apiUnauthorized("Silakan login untuk mengimpor data");
+    }
+
+    const userRole = (session.user as any)?.role;
+    if (!["admin", "staff_transport"].includes(userRole)) {
+      return apiForbidden("Akses ditolak. Fitur import hanya untuk Admin dan Staff Transport.");
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
 
     if (!file) {
-      return NextResponse.json({ error: "File Excel tidak ditemukan" }, { status: 400 });
+      return apiError("File Excel tidak ditemukan", 400);
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return apiError("Ukuran file terlalu besar (maksimal 5MB)", 400);
+    }
+
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls")) {
+      return apiError("Format file tidak didukung. Unggah file .xlsx atau .xls", 400);
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -61,18 +78,15 @@ export async function POST(req: NextRequest) {
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     
-    // Parse as an array of arrays to handle missing columns gracefully, or as JSON.
     const rawData: any[] = xlsx.utils.sheet_to_json(sheet, { defval: "" });
 
     if (!rawData || rawData.length === 0) {
-      return NextResponse.json({ error: "File Excel kosong" }, { status: 400 });
+      return apiError("File Excel kosong", 400);
     }
 
-    // Get all drivers and vehicles to match names/nopols
     const allDrivers = await prisma.driver.findMany();
     const allKendaraan = await prisma.kendaraan.findMany();
 
-    // Helper for noForm generation
     const TIMEZONE = "Asia/Jakarta";
     const now = toZonedTime(new Date(), TIMEZONE);
     const monthStr = String(now.getMonth() + 1).padStart(3, '0');
@@ -97,7 +111,7 @@ export async function POST(req: NextRequest) {
       const s = statusMap[statusStr.trim().toLowerCase()] || RequestStatus.pending;
       if (s === RequestStatus.pending) return 1;
       if (s === RequestStatus.granted) return 2;
-      return 3; // done, cancelled, deny
+      return 3;
     };
 
     const deduplicatedData = new Map<string, any>();
@@ -114,7 +128,6 @@ export async function POST(req: NextRequest) {
           const existingRow = deduplicatedData.get(noFormExcel);
           const existingStatus = (existingRow["Status"] || "").toString();
           const currentStatus = (row["Status"] || "").toString();
-          // If weight is higher, or if weight is equal but we want to take the latest log
           if (getStatusWeight(currentStatus) >= getStatusWeight(existingStatus)) {
             deduplicatedData.set(noFormExcel, row);
           }
@@ -126,9 +139,10 @@ export async function POST(req: NextRequest) {
 
     let successCount = 0;
     let failedCount = 0;
-    
-    for (const row of finalDataToProcess) {
-      try {
+
+    // Execute bulk operation inside a transaction for data integrity
+    await prisma.$transaction(async (tx) => {
+      for (const row of finalDataToProcess) {
         const noFormExcel = (row["No Form"] || "").toString().trim();
         const namaPemohon = (row["Pemohon"] || "").toString().trim();
         const divisi = (row["Divisi"] || "").toString().trim();
@@ -152,7 +166,6 @@ export async function POST(req: NextRequest) {
         const alasanCancel = (row["Alasan Pembatalan"] || "").toString().trim();
         const catatanKoor = (row["Catatan Koor"] || "").toString().trim();
 
-        // Must at least have these three basic fields to be considered valid
         if (!namaPemohon || !divisi || !tujuan) {
           failedCount++;
           continue; 
@@ -160,8 +173,7 @@ export async function POST(req: NextRequest) {
 
         const tglMulai = parseDate(tglMulaiStr);
         const tglSelesai = parseDate(tglSelesaiStr);
-        
-        let status = statusMap[statusStr] || RequestStatus.done; // Default to done
+        let status = statusMap[statusStr] || RequestStatus.done;
 
         let driverId = null;
         if (driverName && driverName !== "-") {
@@ -169,8 +181,7 @@ export async function POST(req: NextRequest) {
           if (matchedDriver) {
             driverId = matchedDriver.id;
           } else {
-            // Auto create missing driver
-            const newDriver = await prisma.driver.create({
+            const newDriver = await tx.driver.create({
               data: { nama: driverName }
             });
             allDrivers.push(newDriver);
@@ -194,8 +205,7 @@ export async function POST(req: NextRequest) {
           if (matchedKendaraan) {
             kendaraanId = matchedKendaraan.id;
           } else {
-            // Auto create missing kendaraan
-            const newKendaraan = await prisma.kendaraan.create({
+            const newKendaraan = await tx.kendaraan.create({
               data: {
                 jenis: validJenis || "Tanpa Keterangan",
                 nopol: validNopol || `TBA-${Date.now()}-${Math.floor(Math.random() * 1000)}`
@@ -212,7 +222,7 @@ export async function POST(req: NextRequest) {
           nextSequence++;
         }
 
-        await prisma.request.create({
+        await tx.request.create({
           data: {
             noForm,
             namaPemohon,
@@ -238,19 +248,17 @@ export async function POST(req: NextRequest) {
         });
 
         successCount++;
-      } catch (err) {
-        console.error("Failed to import row:", row, err);
-        failedCount++;
       }
-    }
+    });
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Import selesai. Berhasil: ${successCount}, Gagal: ${failedCount}`
+    return apiSuccess({
+      message: `Import selesai. Berhasil: ${successCount}, Gagal: ${failedCount}`,
+      successCount,
+      failedCount
     });
 
   } catch (error: any) {
     console.error("Import error:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan sistem saat import" }, { status: 500 });
+    return apiError("Terjadi kesalahan sistem saat import file Excel", 500);
   }
 }

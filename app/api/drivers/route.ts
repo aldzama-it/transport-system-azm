@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { apiError, apiForbidden, apiSuccess, apiUnauthorized, apiValidationError } from "@/lib/api-response";
+import { driverSchema } from "@/lib/validators";
 
 export async function GET() {
   try {
@@ -16,32 +18,40 @@ export async function GET() {
         }
       }
     });
-    return NextResponse.json({ success: true, data: drivers });
+    return apiSuccess(drivers);
   } catch (error: any) {
-    return NextResponse.json({ error: "Terjadi kesalahan" }, { status: 500 });
+    console.error("Error fetching drivers:", error);
+    return apiError("Terjadi kesalahan pada server saat mengambil data driver", 500);
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user?.role === "staff_transport") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    if (!session || !session.user) {
+      return apiUnauthorized();
+    }
+
+    const userRole = session.user.role;
+    if (!["admin", "staff_transport"].includes(userRole)) {
+      return apiForbidden("Akses ditolak. Fitur pengelolaan driver hanya untuk Admin dan Staff Transport.");
     }
 
     const body = await req.json();
-    const { nama, telepon } = body;
-    
-    if (!nama) {
-      return NextResponse.json({ error: "Nama driver wajib diisi" }, { status: 400 });
+    const validation = driverSchema.safeParse(body);
+    if (!validation.success) {
+      return apiValidationError(validation.error);
     }
 
+    const { nama, telepon, status } = validation.data;
+
     const driver = await prisma.driver.create({
-      data: { nama, telepon: telepon || null }
+      data: { nama, telepon: telepon || null, status }
     });
 
-    return NextResponse.json({ success: true, data: driver }, { status: 201 });
+    return apiSuccess(driver, undefined, 201);
   } catch (error: any) {
-    return NextResponse.json({ error: "Gagal menambah driver" }, { status: 500 });
+    console.error("Error creating driver:", error);
+    return apiError("Gagal menambah driver", 500);
   }
 }

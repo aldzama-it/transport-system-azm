@@ -1,16 +1,19 @@
-import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import bcrypt from "bcrypt";
-
-const prisma = new PrismaClient();
+import { apiError, apiForbidden, apiSuccess, apiUnauthorized, apiValidationError } from "@/lib/api-response";
+import { createUserSchema } from "@/lib/validators";
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user?.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+    if (!session || !session.user) {
+      return apiUnauthorized();
+    }
+    if (session.user.role !== "admin") {
+      return apiForbidden("Akses ditolak. Manajemen pengguna hanya untuk Admin.");
     }
 
     const users = await prisma.staffAkun.findMany({
@@ -24,31 +27,34 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     });
     
-    return NextResponse.json({ success: true, data: users });
+    return apiSuccess(users);
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+    console.error("Error fetching users:", error);
+    return apiError("Terjadi kesalahan pada server", 500);
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user?.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+    if (!session || !session.user) {
+      return apiUnauthorized();
+    }
+    if (session.user.role !== "admin") {
+      return apiForbidden("Akses ditolak. Manajemen pengguna hanya untuk Admin.");
     }
 
     const body = await req.json();
-    const { nama, email, password, role } = body;
-
-    if (!nama || !email || !password || !role) {
-      return NextResponse.json({ success: false, error: "Semua kolom wajib diisi" }, { status: 400 });
+    const validation = createUserSchema.safeParse(body);
+    if (!validation.success) {
+      return apiValidationError(validation.error);
     }
 
-    // Check existing email
+    const { nama, email, password, role } = validation.data;
+
     const existing = await prisma.staffAkun.findUnique({ where: { email } });
     if (existing) {
-      return NextResponse.json({ success: false, error: "Email sudah digunakan" }, { status: 400 });
+      return apiError("Email sudah digunakan", 400);
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -59,12 +65,19 @@ export async function POST(req: Request) {
         email,
         passwordHash,
         role
+      },
+      select: {
+        id: true,
+        nama: true,
+        email: true,
+        role: true,
+        createdAt: true
       }
     });
 
-    return NextResponse.json({ success: true, data: { id: newUser.id, email: newUser.email } });
+    return apiSuccess(newUser, undefined, 201);
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+    console.error("Error creating user:", error);
+    return apiError("Terjadi kesalahan pada server", 500);
   }
 }

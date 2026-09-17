@@ -1,26 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createNewRequest, getAllRequests, getRequestByNoForm } from "@/lib/requests";
-import { z } from "zod";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { RequestStatus } from "@prisma/client";
+import { apiError, apiForbidden, apiSuccess, apiUnauthorized, apiValidationError } from "@/lib/api-response";
+import { createRequestSchema } from "@/lib/validators";
 
 export const dynamic = 'force-dynamic';
-
-const createRequestSchema = z.object({
-  namaPemohon: z.string().min(1, "Nama pemohon wajib diisi"),
-  divisi: z.string().min(1, "Divisi wajib diisi"),
-  titikJemput: z.string().min(1, "Titik jemput wajib diisi"),
-  tujuan: z.string().min(1, "Titik tujuan wajib diisi"),
-  alasan: z.string().min(1, "Alasan/Keperluan wajib diisi"),
-  tglMulai: z.string().datetime({ offset: true }).or(z.string()),
-  tglSelesai: z.string().datetime({ offset: true }).or(z.string()),
-});
 
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const data = {
+    const rawData = {
       namaPemohon: formData.get("namaPemohon") as string,
       divisi: formData.get("divisi") as string,
       titikJemput: formData.get("titikJemput") as string,
@@ -33,18 +24,20 @@ export async function POST(req: NextRequest) {
     const file = formData.get("buktiFile") as File | null;
 
     if (!file) {
-      return NextResponse.json({ error: "Bukti persetujuan wajib diupload" }, { status: 400 });
+      return apiError("Bukti persetujuan wajib diupload", 400);
     }
     if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: "Ukuran file maksimal 10MB" }, { status: 400 });
+      return apiError("Ukuran file maksimal 10MB", 400);
     }
 
-    const validation = createRequestSchema.safeParse(data);
+    const validation = createRequestSchema.safeParse(rawData);
     if (!validation.success) {
-      return NextResponse.json({ error: validation.error.issues[0]?.message ?? "Data tidak valid" }, { status: 400 });
+      return apiValidationError(validation.error);
     }
 
-    // Save the file
+    const data = validation.data;
+
+    // Save file
     const buffer = Buffer.from(await file.arrayBuffer());
     const ext = path.extname(file.name);
     const filename = `bukti-${Date.now()}${ext}`;
@@ -59,18 +52,17 @@ export async function POST(req: NextRequest) {
       titikJemput: data.titikJemput,
       tujuan: data.tujuan,
       alasan: data.alasan,
-      tglMulai: new Date(data.tglMulai),
-      tglSelesai: new Date(data.tglSelesai),
+      tglMulai: data.tglMulai ? new Date(data.tglMulai) : new Date(),
+      tglSelesai: data.tglSelesai ? new Date(data.tglSelesai) : new Date(),
       buktiFileUrl: publicPath
     });
 
-    return NextResponse.json({ success: true, data: result }, { status: 201 });
+    return apiSuccess(result, undefined, 201);
   } catch (error: any) {
     console.error("Error creating request:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
+    return apiError("Terjadi kesalahan pada server saat membuat pengajuan", 500);
   }
 }
-
 
 export async function GET(req: NextRequest) {
   try {
@@ -82,10 +74,14 @@ export async function GET(req: NextRequest) {
     if (tracking && search) {
       const request = await getRequestByNoForm(search);
       if (request) {
-        return NextResponse.json({ success: true, data: [request] });
+        // Sanitize sensitive info for public tracking (hide driver's phone number)
+        const sanitizedRequest = {
+          ...request,
+          driver: request.driver ? { id: request.driver.id, nama: request.driver.nama, status: request.driver.status } : null
+        };
+        return apiSuccess([sanitizedRequest]);
       }
 
-      // Check routine request
       const { prisma } = await import("@/lib/prisma");
       const routineRequest = await prisma.routineRequest.findUnique({
         where: { noForm: search },
@@ -104,7 +100,8 @@ export async function GET(req: NextRequest) {
         const totalDays = actualDays > 0 ? actualDays : expectedDays;
         const doneDays = routineRequest.requests?.filter((req: any) => req.status === 'done').length || 0;
         
-        let mappedStatus = routineRequest.status;
+        let mappedStatus: string = routineRequest.status;
+
         if (routineRequest.status === "active") {
           if (actualDays > 0 && doneDays === actualDays) {
             mappedStatus = "done";
@@ -142,20 +139,19 @@ export async function GET(req: NextRequest) {
           routineRepeatType: routineRequest.repeatType,
           buktiFileUrl: routineRequest.buktiFileUrl
         };
-        return NextResponse.json({ success: true, data: [mappedRoutine] });
+        return apiSuccess([mappedRoutine]);
       }
 
-      return NextResponse.json({ success: true, data: [] });
+      return apiSuccess([]);
     }
 
     const { prisma } = await import("@/lib/prisma");
     const now = new Date();
 
-    // Lakukan lazy evaluation untuk status assigned -> in_progress (hanya manual request)
     const assignedRequests = await prisma.request.findMany({
       where: {
         status: "assigned",
-        routineRequestId: null,  // exclude child routine
+        routineRequestId: null,
         tglMulai: { lte: now }
       },
       select: { id: true }
@@ -179,19 +175,16 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Check if we are fetching for calendar
     const type = searchParams.get("type");
     const isCalendar = type === "calendar";
 
     const requests = await getAllRequests(search, status, isCalendar);
 
-    // Fetch routine requests as well
     const { getAllRoutineRequests, calculateExpectedDays } = await import("@/lib/routineRequests");
     const routineRequests = await getAllRoutineRequests();
 
-    // Map routine requests to look like regular requests for the dashboard
     let mappedRoutines = routineRequests.map((r: any) => {
-      let mappedStatus = r.status; // pending, deny, cancelled stay the same
+      let mappedStatus: string = r.status;
 
       const expectedDays = calculateExpectedDays(r.startDate, r.endDate, r.repeatType);
       const actualDays = r.requests?.length || 0;
@@ -224,7 +217,6 @@ export async function GET(req: NextRequest) {
         kendaraan: null,
         history: [],
         routineRequestId: null,
-        // Ringkasan jadwal anak
         routineTotalDays: totalDays,
         routineDoneDays: doneDays,
         routineGrantedDays: grantedDays,
@@ -236,14 +228,14 @@ export async function GET(req: NextRequest) {
       mappedRoutines = mappedRoutines.filter((r: any) => r.status === status);
     }
 
-    // Combine and sort by createdAt desc
     const combined = [...requests, ...mappedRoutines].sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
-    return NextResponse.json({ success: true, data: combined });
+    return apiSuccess(combined);
   } catch (error: any) {
-    return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
+    console.error("Error fetching requests:", error);
+    return apiError("Terjadi kesalahan pada server saat mengambil data pengajuan", 500);
   }
 }
 
@@ -252,22 +244,22 @@ export async function DELETE(req: NextRequest) {
     const { getServerSession } = await import("next-auth");
     const { authOptions } = await import("@/app/api/auth/[...nextauth]/route");
     const session = await getServerSession(authOptions);
-    const userRole = (session?.user as any)?.role;
 
-    if (!session || userRole === "staff_transport") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!session) {
+      return apiUnauthorized();
+    }
+
+    const userRole = (session.user as any)?.role;
+    if (userRole !== "admin") {
+      return apiForbidden("Akses ditolak. Menghapus seluruh pengajuan hanya dapat dilakukan oleh Admin.");
     }
 
     const { prisma } = await import("@/lib/prisma");
-
-    // RequestHistory will be cascaded automatically by prisma if schema is set up, 
-    // but just to be safe, delete them first or rely on cascade. 
-    // Schema has: request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
     await prisma.request.deleteMany();
 
-    return NextResponse.json({ success: true, message: "Semua data berhasil dihapus" });
+    return apiSuccess({ message: "Semua data pengajuan berhasil dihapus" });
   } catch (error: any) {
     console.error("Error deleting all requests:", error);
-    return NextResponse.json({ error: "Terjadi kesalahan pada server" }, { status: 500 });
+    return apiError("Terjadi kesalahan pada server", 500);
   }
 }
